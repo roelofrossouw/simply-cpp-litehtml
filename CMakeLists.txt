@@ -11,7 +11,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 # sc::rest fetches what a page links to over HTTP.
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.12.0)
 # sc::canvas, fonts, bitmaps and drawings: what a page is drawn with.
-find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.2.0)
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.3.0)
 
 set(SOURCE_OBJECTS)
 set(SOURCE_LIBRARIES)
@@ -25,7 +25,10 @@ file(GLOB LITEHTML_SOURCES CONFIGURE_DEPENDS ${LITEHTML_DIR}/src/*.cpp)
 file(GLOB GUMBO_SOURCES CONFIGURE_DEPENDS ${LITEHTML_DIR}/src/gumbo/*.c)
 set(LITEHTML_INCLUDE_DIRS ${LITEHTML_DIR}/include ${LITEHTML_DIR}/src ${LITEHTML_DIR}/src/gumbo/include)
 add_library(sc-litehtml-engine OBJECT ${LITEHTML_SOURCES} ${GUMBO_SOURCES})
-set_target_properties(sc-litehtml-engine PROPERTIES POSITION_INDEPENDENT_CODE ON C_STANDARD 99 EXCLUDE_FROM_ALL ON)
+# Hidden from other libraries: MuPDF links the system's gumbo, which litehtml's own copy (changed)
+# mustn't stand in for, or the other way round, in a program using both.
+set_target_properties(sc-litehtml-engine PROPERTIES POSITION_INDEPENDENT_CODE ON C_STANDARD 99 EXCLUDE_FROM_ALL ON
+        C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
 target_include_directories(sc-litehtml-engine PRIVATE ${LITEHTML_INCLUDE_DIRS} ${LITEHTML_DIR}/include/litehtml ${LITEHTML_DIR}/src/gumbo/include/gumbo)
 target_compile_options(sc-litehtml-engine PRIVATE -w) # upstream's code, upstream's warnings
 list(APPEND SOURCE_OBJECTS $<TARGET_OBJECTS:sc-litehtml-engine>)
@@ -50,4 +53,4 @@ endif ()
 
 add_sc_example(sc-litehtml-demo)
 
-package_sc_module(DEV_DEPENDS "simply-cpp-dev (>= 1.12.0~)" "simply-cpp-graphics-dev (>= 5.2.0~)")
+package_sc_module(DEV_DEPENDS "simply-cpp-dev (>= 1.12.0~)" "simply-cpp-graphics-dev (>= 5.3.0~)")
