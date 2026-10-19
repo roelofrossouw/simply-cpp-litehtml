@@ -14,7 +14,9 @@
 int main(int argc, char **argv) {
     const sc::params args{argc, argv, {
         {"name", "sc-litehtml-demo"},
-        {"description", "Lays out an HTML file (or, without FILE, a page of its own) with sc::web::html and saves it as SVG."},
+        {"description", "Lays out an HTML file with sc::web::html (litehtml underneath) and saves what it draws as SVG. "
+                        "Without FILE it lays out a small invoice of its own, then lists the links and headings it found by "
+                        "CSS selector.\nMore on the wiki: https://github.com/roelofrossouw/simply-cpp/wiki/HTML-to-PDF"},
         {"options", {
             {"width", {{"short", "w"}, {"type", "number"}, {"default", 600}, {"help", "the width to lay out to, in CSS px"}}},
             {"output", {{"short", "o"}, {"default", "sc-litehtml-demo.svg"}, {"help", "the SVG to write"}}}}},
