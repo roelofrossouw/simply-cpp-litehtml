@@ -153,6 +153,32 @@ int main() {
         CHECK_LT(std::abs(wai[0].box().width() - (944 + 556 + 222) * 10 / 1000.0), 0.01); // Adobe's, whatever is installed
     }
 
+    SECTION("position: relative on an inline element moves its text and background together, once");
+    {
+        sc::web::html page{"<!DOCTYPE html><body style='font-size: 10pt'><p>plain <span style='position: relative; top: 20px; left: 40px; "
+                           "background: yellow'>moved</span> after</p><p>plain <span style='background: yellow'>moved</span> after</p></body>"};
+        page.layout(400);
+        const auto picture = page.drawing();
+        std::vector<sc::point> words;
+        std::vector<sc::rect> backgrounds;
+        for (const auto &item: picture.items()) {
+            if (const auto *text = std::get_if<sc::label>(&item); text && text->text.content == "moved") words.push_back(text->text.position);
+            if (const auto *box = std::get_if<sc::drawable>(&item)) backgrounds.push_back(box->bounds());
+        }
+        CHECK_EQ(words.size(), std::size_t{2});
+        CHECK_EQ(backgrounds.size(), std::size_t{2});
+        if (words.size() == 2 && backgrounds.size() == 2) {
+            // The relative span is drawn after the rest; sorted by x, the moved one comes second.
+            std::ranges::sort(words, {}, [](const sc::point &p) { return p.x(); });
+            std::ranges::sort(backgrounds, {}, [](const sc::rect &r) { return r.left(); });
+            CHECK_EQ(words[1].x() - words[0].x(), 40.0);
+            CHECK_EQ(backgrounds[1].left() - backgrounds[0].left(), 40.0);
+            // Each word sits on its background the same way: they moved together.
+            CHECK_EQ(words[1].x() - backgrounds[1].left(), words[0].x() - backgrounds[0].left());
+            CHECK_EQ(words[1].y() - backgrounds[1].top(), words[0].y() - backgrounds[0].top());
+        }
+    }
+
     SECTION("Drawing through a transform: px to points");
     {
         sc::web::html page{"<div style='width: 100px; height: 40px; background: black'></div>"};
