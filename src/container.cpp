@@ -624,7 +624,7 @@ namespace sc::web::detail {
     }
 
     void container::get_viewport(litehtml::position &viewport) const {
-        viewport = {0, 0, static_cast<litehtml::pixel_t>(layout_width), static_cast<litehtml::pixel_t>(layout_width * 1.414)};
+        viewport = {0, 0, static_cast<litehtml::pixel_t>(layout_width), static_cast<litehtml::pixel_t>(viewport_height())};
     }
 
     litehtml::element::ptr container::create_element(const char *, const litehtml::string_map &, const std::shared_ptr<litehtml::document> &) {
@@ -634,7 +634,7 @@ namespace sc::web::detail {
     void container::get_media_features(litehtml::media_features &media) const {
         media.type = settings_.media == "screen" ? litehtml::media_type_screen : litehtml::media_type_print;
         media.width = static_cast<litehtml::pixel_t>(layout_width);
-        media.height = static_cast<litehtml::pixel_t>(layout_width * 1.414); // an A-series page's proportions
+        media.height = static_cast<litehtml::pixel_t>(viewport_height());
         media.device_width = media.width;
         media.device_height = media.height;
         media.color = 8;

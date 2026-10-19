@@ -19,6 +19,7 @@ namespace sc::web {
             container host;
             litehtml::document::ptr document;
             bool laid_out = false;
+            double fitted = 0; // what render() found the content needs
 
             html_data(const std::string_view text, html::options settings) : host(std::move(settings)) {
                 const auto &css = host.settings().css;
@@ -120,7 +121,7 @@ namespace sc::web {
     double html::layout(const double width) {
         data_->host.layout_width = width;
         data_->document->media_changed(); // @media rules see the new width
-        data_->document->render(static_cast<litehtml::pixel_t>(width));
+        data_->fitted = data_->document->render(static_cast<litehtml::pixel_t>(width));
         data_->laid_out = true;
         return height();
     }
@@ -128,6 +129,8 @@ namespace sc::web {
     double html::width() const { return data_->document->width(); }
 
     double html::height() const { return data_->document->height(); }
+
+    double html::fitted_width() const { return data_->fitted; }
 
     void html::draw(sc::canvas &canvas, const sc::transform &placement, const std::optional<rect> &clip) {
         if (placement != sc::transform{}) {

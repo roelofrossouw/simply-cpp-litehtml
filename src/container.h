@@ -34,6 +34,9 @@ namespace sc::web::detail {
 
         [[nodiscard]] const html::options &settings() const { return settings_; }
 
+        // The settings' viewport height, or an A-series page's proportions.
+        [[nodiscard]] double viewport_height() const { return settings_.viewport_height.value_or(layout_width * 1.414); }
+
         litehtml::uint_ptr create_font(const litehtml::font_description &description, const litehtml::document *doc,
                                        litehtml::font_metrics *metrics) override;
 

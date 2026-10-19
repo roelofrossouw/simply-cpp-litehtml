@@ -32,6 +32,10 @@ namespace sc::web {
         sc::font font{"sans-serif", 16};
         /// "print" (the default) or "screen", for @media rules.
         std::string media = "print";
+        /// The viewport's height in px: what position: fixed, vh and the initial containing block's
+        /// percentages see, and @media's height. Without it, the layout width and an A-series page's
+        /// proportions (1.414 times as high).
+        std::optional<double> viewport_height;
         /// Text in PDF's built-in fonts, measured with Adobe's metrics for them (sc::standard_font):
         /// CSS families map to Helvetica (Arial, sans-serif and the like), Times (Times New Roman,
         /// serif) or Courier (Courier New, monospace); another family stays itself when it's
@@ -88,6 +92,10 @@ namespace sc::web {
         double layout(double width);
 
         [[nodiscard]] double width() const;
+
+        /// The width the content needs, at most the width last laid out at: lay out again at it
+        /// for a page no wider than what's in it (a browser's shrink-to-fit). 0 before layout().
+        [[nodiscard]] double fitted_width() const;
 
         [[nodiscard]] double height() const;
 
