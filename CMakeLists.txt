@@ -11,7 +11,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 # sc::rest fetches what a page links to over HTTP.
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.12.0)
 # sc::canvas, fonts, bitmaps and drawings: what a page is drawn with.
-find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.3.0)
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.4.0)
 
 set(SOURCE_OBJECTS)
 set(SOURCE_LIBRARIES)
@@ -53,4 +53,4 @@ endif ()
 
 add_sc_example(sc-litehtml-demo)
 
-package_sc_module(DEV_DEPENDS "simply-cpp-dev (>= 1.12.0~)" "simply-cpp-graphics-dev (>= 5.3.0~)")
+package_sc_module(DEV_DEPENDS "simply-cpp-dev (>= 1.12.0~)" "simply-cpp-graphics-dev (>= 5.4.0~)")
