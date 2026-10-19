@@ -50,6 +50,11 @@ takes its first installed family, else its generic one. Stylesheets
 (`<link>`, `@import`) and images come through `options.fetch`, by default from
 data: URIs, local files and http(s) (sc-core's `sc::rest`).
 
+With `options.builtin_fonts`, text is in PDF's built-in fonts: CSS families map to Helvetica
+(Arial, `sans-serif`), Times (Times New Roman, `serif`) or Courier (Courier New, `monospace`), and
+are measured with Adobe's metrics; draw on an `sc::pdf` with `builtin_fonts(true)`, which writes
+them unembedded.
+
 What's drawn: text with its weight, style and decoration (underline, overline,
 line-through), backgrounds (colours, linear gradients, images, repeated as CSS
 says), borders (solid, double, dashed, dotted, inset and outset; rounded
