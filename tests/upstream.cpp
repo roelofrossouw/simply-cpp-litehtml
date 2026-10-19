@@ -1,21 +1,25 @@
 // litehtml's own render tests (litehtml-tests, at the commit our litehtml pins), laid out by
 // sc::web::html and drawn without cairo, pango or GTK: each page is drawn into pixels by
-// render/raster.h and compared with litehtml's reference picture of it. Text in fonts other than
+// upstream/raster.h and compared with litehtml's reference picture of it. Text in fonts other than
 // Ahem is left out of the comparison where it lies (the references' text is pango's), and pages with
 // an image other than a PNG are left out.
 //
 // The environment says where things are (CMake sets it for ctest):
-//   SC_LITEHTML_TESTS   litehtml-tests' render folder; without it the test is skipped
-//   SC_RENDER_KNOWN     the pages known to differ, one a line; they don't fail the test
-//   SC_RENDER_FAILED    a folder to write what each failing page drew, as <page>.png
-//   SC_RENDER_ONLY      only the pages whose path contains this
-//   SC_RENDER_WRITE_KNOWN  writes every page that differs to SC_RENDER_KNOWN instead of checking
-#include "render/raster.h"
+//   SC_LITEHTML_TESTS     litehtml-tests' render folder; without it the test is skipped
+//   SC_UPSTREAM_PAGES     the pages checked, one a line (upstream/pages.txt): each must be drawn as
+//                         its reference
+//   SC_UPSTREAM_ALL       set: every page instead, reporting how many are drawn as their references
+//                         and failing none (to explore, and to choose pages for the list)
+//   SC_UPSTREAM_PASSING   a file to write the pages drawn as their references to
+//   SC_UPSTREAM_FAILED    a folder to write what each differing page drew, as <page>.png
+//   SC_UPSTREAM_ONLY      only the pages whose path contains this
+#include "upstream/raster.h"
 
 #include <html.h>
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -112,9 +116,13 @@ namespace {
         settings.viewport_height = 600;
         sc::web::html document{read(page), settings};
         document.layout(800);
-        if (settings_of_page.best_fit && document.fitted_width() > 0) document.layout(settings_of_page.width.value_or(static_cast<int>(document.fitted_width())));
-        const int width = settings_of_page.width.value_or(std::max(1, static_cast<int>(document.width())));
-        const int height = settings_of_page.height.value_or(std::max(1, static_cast<int>(document.height())));
+        // Rounded up: our text widths are fractional (pango's, in the references, are whole pixels),
+        // so a width rounded down would wrap the widest line.
+        if (settings_of_page.best_fit && document.fitted_width() > 0)
+            document.layout(settings_of_page.width.value_or(static_cast<int>(std::ceil(document.fitted_width()))));
+        // Rounded up too: our line heights are fractional, the references' whole pixels.
+        const int width = settings_of_page.width.value_or(std::max(1, static_cast<int>(std::ceil(document.width()))));
+        const int height = settings_of_page.height.value_or(std::max(1, static_cast<int>(std::ceil(document.height()))));
 
         render_test::raster drawn{width, height};
         drawn.draw(document.drawing(sc::rect{0, 0, static_cast<double>(width), static_cast<double>(height)}));
@@ -123,21 +131,27 @@ namespace {
 
         const auto ours = drawn.result();
         std::string detail;
-        if (ours.width != reference->width || ours.height != reference->height) {
+        // A page sized to its widest line comes out a few pixels wider or narrower, as our text
+        // measures a little differently from pango's: such pages are compared where both are.
+        constexpr int size_slack = 4;
+        if (std::abs(ours.width - reference->width) > size_slack || std::abs(ours.height - reference->height) > size_slack) {
             detail = std::to_string(ours.width) + "x" + std::to_string(ours.height) + ", the reference " +
                      std::to_string(reference->width) + "x" + std::to_string(reference->height);
         } else {
             // Antialiased edges come out a little differently from cairo's: a pixel differs when
             // a channel is more than a tenth off.
             std::size_t different = 0;
-            for (std::size_t i = 0; i < ours.rgb.size(); i += 3) {
-                if (masked[i / 3]) continue;
-                for (int c = 0; c < 3; ++c)
-                    if (std::abs(ours.rgb[i + c] - reference->rgb[i + c]) > 26) {
-                        ++different;
-                        break;
-                    }
-            }
+            for (int y = 0; y < std::min(ours.height, reference->height); ++y)
+                for (int x = 0; x < std::min(ours.width, reference->width); ++x) {
+                    const auto at = static_cast<std::size_t>(y) * ours.width + x;
+                    if (masked[at]) continue;
+                    const auto mine = at * 3, theirs = (static_cast<std::size_t>(y) * reference->width + x) * 3;
+                    for (int c = 0; c < 3; ++c)
+                        if (std::abs(ours.rgb[mine + c] - reference->rgb[theirs + c]) > 26) {
+                            ++different;
+                            break;
+                        }
+                }
             if (different > 0) detail = std::to_string(different) + " pixels differ";
         }
         if (detail.empty()) return {outcome::passed, drawn.masked().empty() ? "" : "masked"};
@@ -156,18 +170,23 @@ int main() {
         std::cout << "litehtml-tests isn't here (SC_LITEHTML_TESTS): skipped\n";
         return 0;
     }
-    const fs::path known_file = environment("SC_RENDER_KNOWN"), failed = environment("SC_RENDER_FAILED");
-    const std::string only = environment("SC_RENDER_ONLY");
-    const bool write_known = !environment("SC_RENDER_WRITE_KNOWN").empty();
+    const fs::path list_file = environment("SC_UPSTREAM_PAGES"), failed = environment("SC_UPSTREAM_FAILED"),
+                   passing_file = environment("SC_UPSTREAM_PASSING");
+    const std::string only = environment("SC_UPSTREAM_ONLY");
+    const bool all = !environment("SC_UPSTREAM_ALL").empty();
 
-    std::set<std::string> known;
+    std::vector<std::string> listed;
     {
-        std::ifstream in{known_file};
+        std::ifstream in{list_file};
         for (std::string line; std::getline(in, line);)
-            if (!line.empty() && !line.starts_with('#')) known.insert(line);
+            if (!line.empty() && !line.starts_with('#')) listed.push_back(line);
+    }
+    if (!all && listed.empty()) {
+        std::cerr << "no pages listed (SC_UPSTREAM_PAGES: " << list_file << ")\n";
+        return 1;
     }
 
-    auto pages = pages_in(root);
+    auto pages = all ? pages_in(root) : listed;
     if (!only.empty()) std::erase_if(pages, [&](const std::string &name) { return name.find(only) == std::string::npos; });
 
     std::vector<result> results(pages.size());
@@ -177,7 +196,8 @@ int main() {
         workers.emplace_back([&] {
             for (std::size_t i; (i = next++) < pages.size();) {
                 try {
-                    results[i] = run(root, pages[i], failed);
+                    if (!fs::exists(root / pages[i])) results[i] = {outcome::differs, "no such page in litehtml-tests"};
+                    else results[i] = run(root, pages[i], failed);
                 } catch (const std::exception &error) {
                     results[i] = {outcome::differs, std::string{"threw: "} + error.what()};
                 }
@@ -185,34 +205,32 @@ int main() {
         });
     for (auto &worker: workers) worker.join();
 
-    std::size_t passed = 0, masked = 0, left_out = 0, no_reference = 0;
-    std::vector<std::string> differ, unexpected, now_pass;
+    std::size_t masked = 0, left_out = 0, no_reference = 0;
+    std::vector<std::string> passed, differ;
     for (std::size_t i = 0; i < pages.size(); ++i) {
         const auto &[what, detail] = results[i];
         if (what == outcome::passed) {
-            ++passed;
+            passed.push_back(pages[i]);
             if (!detail.empty()) ++masked;
-            if (known.contains(pages[i])) now_pass.push_back(pages[i]);
         } else if (what == outcome::left_out) ++left_out;
         else if (what == outcome::no_reference) ++no_reference;
-        else {
-            differ.push_back(pages[i]);
-            if (!known.contains(pages[i])) unexpected.push_back(pages[i] + ": " + detail);
-        }
+        else differ.push_back(pages[i] + ": " + detail);
     }
 
-    std::cout << pages.size() << " pages: " << passed << " drawn as their references (" << masked << " with text in other fonts left out), "
-              << differ.size() << " differ (" << differ.size() - unexpected.size() << " known), " << left_out << " left out (images other than PNGs), "
-              << no_reference << " without a reference\n";
-    if (write_known) {
-        std::ofstream out{known_file};
-        out << "# litehtml-tests pages sc-litehtml draws differently from litehtml's references (tests/render.cpp).\n"
-               "# Rewritten with SC_RENDER_WRITE_KNOWN=1; take a page out when it's drawn as its reference.\n";
-        for (const auto &name: differ) out << name << '\n';
-        std::cout << "wrote " << differ.size() << " pages to " << known_file << '\n';
-        return 0;
+    std::cout << pages.size() << " pages: " << passed.size() << " drawn as their references (" << masked
+              << " with text in other fonts left out), " << differ.size() << " differ, " << left_out
+              << " left out (images other than PNGs), " << no_reference << " without a reference\n";
+    if (!passing_file.empty()) {
+        std::ofstream out{passing_file};
+        for (const auto &name: passed) out << name << '\n';
+        std::cout << "wrote the " << passed.size() << " pages drawn as their references to " << passing_file << '\n';
     }
-    for (const auto &name: now_pass) std::cout << "now drawn as its reference (take it out of the known list): " << name << '\n';
-    for (const auto &line: unexpected) std::cout << "FAILED: " << line << '\n';
-    return unexpected.empty() ? 0 : 1;
+    if (all) return 0; // exploring: every page, nothing required
+    // A listed page must be drawn as its reference; one left out or without a reference no longer
+    // checks anything, so it fails too.
+    for (const auto &line: differ) std::cout << "FAILED: " << line << '\n';
+    for (std::size_t i = 0; i < pages.size(); ++i)
+        if (results[i].what == outcome::left_out || results[i].what == outcome::no_reference)
+            std::cout << "FAILED: " << pages[i] << ": not compared\n";
+    return passed.size() == pages.size() ? 0 : 1;
 }

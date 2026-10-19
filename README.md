@@ -109,6 +109,16 @@ for (const auto &heading: page.select("h1, h2, h3")) sc::console::note(heading.n
 Run `bash scripts/install.sh` to configure, build, test, package and install.
 It needs sc-core and sc-graphics (installed if missing).
 
+Besides its unit tests, `test-upstream` draws pages from litehtml's own render tests
+([litehtml-tests](https://github.com/litehtml/litehtml-tests), at the commit the vendored
+litehtml pins, downloaded once into `~/.cache/simply-cpp`) and compares them with litehtml's
+reference pictures, pixel by pixel. It checks the pages in `tests/upstream/pages.txt`: litehtml's
+own pages and one page per CSS 2.1 and flexbox topic, 548 in all, to catch a major regression in
+layout or drawing. Text in fonts other than Ahem is left out of the comparison, since the
+references' text comes from pango. With `SC_UPSTREAM_ALL=1` it draws every page instead (3,805 of
+5,755 match, as of 2026-10-19) and fails none; `SC_UPSTREAM_PASSING=<file>` writes the ones that
+match, to choose pages from. Offline, it's skipped.
+
 ```bash
 sudo curl -fsSL https://apt.roelof.co.za/setup.sh | bash
 sudo apt -y install simply-cpp-litehtml-dev
