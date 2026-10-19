@@ -56,7 +56,8 @@ says), borders (solid, double, dashed, dotted, inset and outset; rounded
 corners), list markers, and clips (`overflow: hidden`, rounded too). Images
 are PNG, JPEG (`sc::bitmap`) or SVG (drawn as shapes, staying vector). Not yet:
 radial and conic gradients (drawn in their middle colour), groove and ridge
-borders' two tones.
+borders' two tones. Characters a font lacks come from a face that has them,
+and emoji are drawn in colour (sc-graphics 5.4.0).
 
 ## Demo
 
