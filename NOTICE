@@ -1,0 +1,9 @@
+simply-cpp-litehtml
+Copyright 2026 Roelof Rossouw
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes litehtml (https://github.com/litehtml/litehtml), Copyright (c) 2013,
+Yuri Kobets (tordex), under the BSD 3-Clause License, and its gumbo HTML parser, Copyright 2010
+Google Inc., under the Apache License, Version 2.0: see third_party/litehtml/LICENSE and
+third_party/litehtml/src/gumbo/LICENSE.
