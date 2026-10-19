@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
-<!-- test-render's fonts, as litehtml-tests' own fonts.cpp sets them up: only the fonts in its fonts folder (Ahem,
+<!-- test-upstream's fonts, as litehtml-tests' own fonts.cpp sets them up: only the fonts in its fonts folder (Ahem,
      Noto and the CSS test fonts), serif and the other generic families as Noto. -->
 <fontconfig>
     <dir>@render_fonts_dir@</dir>
