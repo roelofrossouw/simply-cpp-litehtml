@@ -32,6 +32,11 @@ namespace sc::web {
         sc::font font{"sans-serif", 16};
         /// "print" (the default) or "screen", for @media rules.
         std::string media = "print";
+        /// Text in PDF's built-in fonts, measured with Adobe's metrics for them (sc::standard_font):
+        /// CSS families map to Helvetica (Arial, sans-serif and the like), Times (Times New Roman,
+        /// serif) or Courier (Courier New, monospace); another family stays itself when it's
+        /// installed. Draw on an sc::pdf with builtin_fonts(true), which writes them unembedded.
+        bool builtin_fonts = false;
         /// Fetches stylesheets and images; empty for the default (html::default_fetch()).
         html_fetcher fetch;
     };

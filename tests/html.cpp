@@ -7,6 +7,7 @@
 #include <base64.h>
 
 #include <algorithm>
+#include <map>
 #include <string>
 #include <variant>
 
@@ -129,6 +130,27 @@ int main() {
             if (const auto *text = std::get_if<sc::label>(&item)) (text->text.content == "Cell" ? cell : words) = text->text.font.size;
         CHECK_LT(0.0, words);
         CHECK_EQ(cell, words);
+    }
+
+    SECTION("Built-in fonts: CSS families as Helvetica, Times or Courier, Adobe's widths");
+    {
+        sc::web::html::options settings;
+        settings.builtin_fonts = true;
+        sc::web::html page{"<p style='font-family: Arial'>Sans</p><p style='font-family: serif'>Serif</p>"
+                           "<p style='font-family: monospace'>Mono</p><p style='font-family: Unheardof, sans-serif'>Fallen</p>"
+                           "<p style='font-family: Helvetica; font-size: 10px'><span id='wai'>Wai</span></p>", settings};
+        page.layout(400);
+        const auto picture = page.drawing();
+        std::map<std::string, std::string> families;
+        for (const auto &item: picture.items())
+            if (const auto *text = std::get_if<sc::label>(&item)) families[text->text.content] = text->text.font.family;
+        CHECK_EQ(families["Sans"], std::string{"Helvetica"});
+        CHECK_EQ(families["Serif"], std::string{"Times"});
+        CHECK_EQ(families["Mono"], std::string{"Courier"});
+        CHECK_EQ(families["Fallen"], std::string{"Helvetica"});
+        const auto wai = page.select("#wai");
+        CHECK_EQ(wai.size(), std::size_t{1});
+        CHECK_LT(std::abs(wai[0].box().width() - (944 + 556 + 222) * 10 / 1000.0), 0.01); // Adobe's, whatever is installed
     }
 
     SECTION("Drawing through a transform: px to points");

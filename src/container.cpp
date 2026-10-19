@@ -7,6 +7,7 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <map>
 #include <stdexcept>
 #include <utility>
 
@@ -121,6 +122,34 @@ namespace sc::web::detail {
             return generic.empty() ? fallback : generic;
         }
 
+        // With built-in fonts: a family list as Helvetica, Times or Courier, or a family of its own
+        // that's installed (embedded then); Helvetica when nothing in it is either.
+        std::string builtin_family_of(const std::string &list) {
+            static const std::map<std::string, std::string> builtin{
+                {"helvetica", "Helvetica"}, {"arial", "Helvetica"}, {"liberation sans", "Helvetica"}, {"arimo", "Helvetica"},
+                {"nimbus sans", "Helvetica"}, {"sans-serif", "Helvetica"}, {"system-ui", "Helvetica"}, {"-apple-system", "Helvetica"},
+                {"ui-sans-serif", "Helvetica"}, {"cursive", "Helvetica"}, {"fantasy", "Helvetica"},
+                {"times", "Times"}, {"times new roman", "Times"}, {"times-roman", "Times"}, {"liberation serif", "Times"},
+                {"tinos", "Times"}, {"nimbus roman", "Times"}, {"serif", "Times"}, {"ui-serif", "Times"},
+                {"courier", "Courier"}, {"courier new", "Courier"}, {"liberation mono", "Courier"}, {"cousine", "Courier"},
+                {"nimbus mono ps", "Courier"}, {"monospace", "Courier"}, {"ui-monospace", "Courier"}};
+            std::size_t start = 0;
+            while (start <= list.size()) {
+                auto end = list.find(',', start);
+                if (end == std::string::npos) end = list.size();
+                std::string name = list.substr(start, end - start);
+                start = end + 1;
+                const auto first = name.find_first_not_of(" \t\"'"), last = name.find_last_not_of(" \t\"'");
+                if (first == std::string::npos) continue;
+                name = name.substr(first, last - first + 1);
+                std::string lower = name;
+                std::ranges::transform(lower, lower.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                if (const auto found = builtin.find(lower); found != builtin.end()) return found->second;
+                if (sc::font{name}.available()) return name;
+            }
+            return "Helvetica";
+        }
+
         // Pushes and pops a canvas clip around what's drawn while it lives.
         class clip_scope {
         public:
@@ -207,8 +236,9 @@ namespace sc::web::detail {
 
     litehtml::uint_ptr container::create_font(const litehtml::font_description &description, const litehtml::document *, litehtml::font_metrics *metrics) {
         font_entry entry;
-        entry.font = sc::font{family_of(description.family, settings_.font.family), description.size, description.weight,
-                              description.style == litehtml::font_style_italic};
+        const auto family = settings_.builtin_fonts ? builtin_family_of(description.family) : family_of(description.family, settings_.font.family);
+        entry.font = sc::font{family, description.size, description.weight, description.style == litehtml::font_style_italic};
+        if (settings_.builtin_fonts) entry.standard = sc::standard_font::of(entry.font);
         entry.decoration = description.decoration_line;
         entry.decoration_colour = description.decoration_color;
         const auto &font = entry.font;
@@ -217,14 +247,21 @@ namespace sc::web::detail {
         entry.ascent = font.ascender() > 0 ? font.ascender() : size * 0.8;
         entry.descent = font.ascender() > 0 ? font.descender() : size * 0.2;
         entry.x_height = font.x_height() > 0 ? font.x_height() : size * 0.5;
+        if (entry.standard) { // Adobe's metrics, whatever is installed
+            entry.ascent = entry.standard->ascender(size);
+            entry.descent = entry.standard->descender(size);
+            entry.x_height = entry.standard->x_height(size);
+        }
         if (metrics) {
             metrics->font_size = static_cast<litehtml::pixel_t>(size);
             metrics->ascent = static_cast<litehtml::pixel_t>(entry.ascent);
             metrics->descent = static_cast<litehtml::pixel_t>(entry.descent);
-            const double line = font.line_height();
+            // A built-in font's normal line height is 1.15 of its size, as browsers give Arial,
+            // Times New Roman and Courier New (the same metrics).
+            const double line = entry.standard ? size * 1.15 : font.line_height();
             metrics->height = static_cast<litehtml::pixel_t>(line > 0 ? std::max(line, entry.ascent + entry.descent) : entry.ascent + entry.descent);
             metrics->x_height = static_cast<litehtml::pixel_t>(entry.x_height);
-            const double zero = font.width("0");
+            const double zero = entry.standard ? entry.standard->width("0", size) : font.width("0");
             metrics->ch_width = static_cast<litehtml::pixel_t>(zero > 0 ? zero : size * 0.5);
             metrics->draw_spaces = false; // words are placed one by one; spaces only move them
             metrics->sub_shift = static_cast<litehtml::pixel_t>(size / 5);
@@ -234,6 +271,24 @@ namespace sc::web::detail {
         return static_cast<litehtml::uint_ptr>(fonts_.size());
     }
 
+    // A built-in font's width: Adobe's for what Windows-1252 has, the installed font's for the rest
+    // (embedded when drawn, as sc::pdf does).
+    double container::standard_width(const font_entry &entry, const std::string_view text) {
+        double width = 0;
+        std::string other;
+        for (std::size_t i = 0; i < text.size();) {
+            const auto first = static_cast<unsigned char>(text[i]);
+            const std::size_t length = first < 0x80 ? 1 : (first >> 5) == 6 ? 2 : (first >> 4) == 14 ? 3 : (first >> 3) == 30 ? 4 : 1;
+            char32_t code = length == 1 ? first : first & (0x7F >> length);
+            for (std::size_t k = 1; k < length && i + k < text.size(); ++k) code = (code << 6) | (static_cast<unsigned char>(text[i + k]) & 0x3F);
+            if (sc::standard_font::encode(code)) width += entry.standard->width(text.substr(i, length), entry.font.size);
+            else other.append(text.substr(i, length));
+            i += length;
+        }
+        if (!other.empty()) width += entry.font.width(other);
+        return width;
+    }
+
     void container::delete_font(const litehtml::uint_ptr font) {
         if (font > 0 && font <= fonts_.size()) fonts_[font - 1].reset();
     }
@@ -241,6 +296,7 @@ namespace sc::web::detail {
     litehtml::pixel_t container::text_width(const char *text, const litehtml::uint_ptr font) {
         if (font == 0 || font > fonts_.size() || !fonts_[font - 1] || !text || !*text) return 0;
         const auto &entry = *fonts_[font - 1];
+        if (entry.standard) return static_cast<litehtml::pixel_t>(standard_width(entry, text));
         const double measured = entry.font.width(text);
         return static_cast<litehtml::pixel_t>(measured > 0 ? measured : std::char_traits<char>::length(text) * entry.font.size * 0.5);
     }

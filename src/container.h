@@ -8,6 +8,7 @@
 #include <litehtml.h>
 
 #include <bitmap.h>
+#include <standard_font.h>
 
 #include <map>
 #include <optional>
@@ -101,6 +102,7 @@ namespace sc::web::detail {
     private:
         struct font_entry {
             sc::font font;
+            std::optional<sc::standard_font> standard; // with builtin_fonts: the built-in font it is
             int decoration = 0; // litehtml::text_decoration_line flags
             litehtml::web_color decoration_colour;
             double ascent = 0, descent = 0, x_height = 0;
@@ -115,6 +117,8 @@ namespace sc::web::detail {
         [[nodiscard]] std::string resolved(const char *src, const char *baseurl) const;
 
         [[nodiscard]] const picture *find(const std::string &url) const;
+
+        [[nodiscard]] static double standard_width(const font_entry &entry, std::string_view text);
 
         [[nodiscard]] static sc::canvas &canvas_of(litehtml::uint_ptr hdc) { return *reinterpret_cast<sc::canvas *>(hdc); }
     };
