@@ -53,4 +53,6 @@ endif ()
 
 add_sc_example(sc-litehtml-demo)
 
-package_sc_module(DEV_DEPENDS "simply-cpp-dev (>= 1.12.0~)" "simply-cpp-graphics-dev (>= 6.0.0~)")
+# sc-graphics' code in this library falls back to an emoji font, which its package brings.
+package_sc_module(DEPENDS fonts-noto-color-emoji
+        DEV_DEPENDS "simply-cpp-dev (>= 1.12.0~)" "simply-cpp-graphics-dev (>= 6.0.0~)")
