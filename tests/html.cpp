@@ -119,6 +119,18 @@ int main() {
         }
     }
 
+    SECTION("A table's text is the size of the text around it, as in browsers");
+    {
+        sc::web::html page{"<!DOCTYPE html><body style='font-size: 10pt'><p>Words</p><table><tr><td>Cell</td></tr></table></body>"};
+        page.layout(400);
+        double words = 0, cell = 0;
+        const auto picture = page.drawing(); // kept: items() refers into it
+        for (const auto &item: picture.items())
+            if (const auto *text = std::get_if<sc::label>(&item)) (text->text.content == "Cell" ? cell : words) = text->text.font.size;
+        CHECK_LT(0.0, words);
+        CHECK_EQ(cell, words);
+    }
+
     SECTION("Drawing through a transform: px to points");
     {
         sc::web::html page{"<div style='width: 100px; height: 40px; background: black'></div>"};

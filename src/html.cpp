@@ -22,7 +22,10 @@ namespace sc::web {
 
             html_data(const std::string_view text, html::options settings) : host(std::move(settings)) {
                 const auto &css = host.settings().css;
-                document = litehtml::document::createFromString(litehtml::estring{std::string{text}, litehtml::encoding::utf_8}, &host, litehtml::master_css, css);
+                // litehtml's own defaults, but tables inherit their font size, as browsers do in standards
+                // mode (litehtml always gives them "medium", as browsers do only in quirks mode).
+                static const std::string defaults = std::string{litehtml::master_css} + "\ntable { font-size: inherit; }\n";
+                document = litehtml::document::createFromString(litehtml::estring{std::string{text}, litehtml::encoding::utf_8}, &host, defaults, css);
             }
         };
     }
