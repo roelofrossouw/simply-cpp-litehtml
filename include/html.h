@@ -78,7 +78,6 @@ namespace sc::web {
         private:
             friend class html;
             std::shared_ptr<const void> node_; // litehtml::element, keeping the document alive
-            std::shared_ptr<detail::html_data> data_;
         };
 
         /// Parses the HTML (a whole page or a fragment); it's laid out on the first layout().

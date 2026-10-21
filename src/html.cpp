@@ -213,7 +213,6 @@ namespace sc::web {
         for (const auto &node: matched) {
             element each;
             each.node_ = std::shared_ptr<const void>{data_, node.get()}; // aliasing: the document keeps it
-            each.data_ = data_;
             found.push_back(std::move(each));
         }
         return found;
