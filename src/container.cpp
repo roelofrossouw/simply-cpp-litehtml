@@ -240,7 +240,6 @@ namespace sc::web::detail {
         return found != pictures_.end() && found->second ? &*found->second : nullptr;
     }
 
-    // ---------------------------------------------------------------- fonts and text
 
     litehtml::uint_ptr container::create_font(const litehtml::font_description &description, const litehtml::document *, litehtml::font_metrics *metrics) {
         font_entry entry;
@@ -317,7 +316,6 @@ namespace sc::web::detail {
         const double baseline = pos.y + pos.height - entry.descent;
         canvas.draw(sc::text{text, {pos.x, baseline}, entry.font}, colour_of(colour));
         if (entry.decoration == litehtml::text_decoration_line_none) return;
-        // Lines a fourteenth of the size thick, at least 1 px.
         const double thickness = std::max(1.0, entry.font.size / 14);
         const double width = text_width(text, font);
         const auto line_colour = entry.decoration_colour == litehtml::web_color::current_color ? colour : entry.decoration_colour;
@@ -347,7 +345,6 @@ namespace sc::web::detail {
         }
     }
 
-    // ---------------------------------------------------------------- images
 
     void container::load_image(const char *src, const char *baseurl, bool) {
         const auto url = resolved(src, baseurl);
@@ -404,7 +401,6 @@ namespace sc::web::detail {
         }
     }
 
-    // ---------------------------------------------------------------- backgrounds
 
     void container::draw_solid_fill(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer, const litehtml::web_color &colour) {
         if (colour.alpha == 0) return;
@@ -460,7 +456,6 @@ namespace sc::web::detail {
         draw_solid_fill(hdc, layer, middle_colour(gradient));
     }
 
-    // ---------------------------------------------------------------- borders
 
     namespace {
         bool shows(const litehtml::border &side) {
@@ -574,7 +569,6 @@ namespace sc::web::detail {
         }
     }
 
-    // ---------------------------------------------------------------- clips
 
     void container::set_clip(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
         if (!target) return;
@@ -588,7 +582,6 @@ namespace sc::web::detail {
         --clips_;
     }
 
-    // ---------------------------------------------------------------- the rest
 
     void container::set_caption(const char *text) { caption = text ? text : ""; }
 

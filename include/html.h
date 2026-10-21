@@ -22,7 +22,6 @@ namespace sc::web {
     /// against its base; nothing when it can't. The default reads data: URIs, local files and http(s).
     using html_fetcher = std::function<std::optional<std::string>(const std::string &resolved)>;
 
-    /// How sc::web::html reads a document.
     struct html_options {
         /// CSS after the browser's defaults and before the document's own.
         std::string css;
@@ -69,7 +68,6 @@ namespace sc::web {
             /// An attribute's value, or nothing when it has none.
             [[nodiscard]] std::optional<std::string> attribute(std::string_view name) const;
 
-            /// All the text inside it.
             [[nodiscard]] std::string text() const;
 
             /// Its border box in the document, as last laid out.
