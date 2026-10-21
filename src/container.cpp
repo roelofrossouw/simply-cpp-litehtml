@@ -1,5 +1,6 @@
 #include "container.h"
 
+#include <core.h>
 #include <paint.h>
 #include <path.h>
 
@@ -46,7 +47,7 @@ namespace sc::web::detail {
                 y = std::max(0.0, y * scale);
                 if (x == 0 || y == 0) x = y = 0;
             }
-            constexpr double k = 0.5522847498; // a quarter circle as one cubic
+            constexpr double k = quarter_circle;
             const double l = box.left(), t = box.top(), r = box.right(), b = box.bottom();
             const auto &[tlx, tly] = corners[0];
             const auto &[trx, try_] = corners[1];
@@ -94,21 +95,32 @@ namespace sc::web::detail {
             return corners;
         }
 
-        // A family list ("Roboto, 'Helvetica Neue', sans-serif") as the first installed family, or
-        // a generic one, or fallback.
-        std::string family_of(const std::string &list, const std::string &fallback) {
-            std::string generic;
+        struct family {
+            std::string name, lower;
+        };
+
+        // A family list ("Roboto, 'Helvetica Neue', sans-serif") as its names, unquoted.
+        std::vector<family> families(const std::string &list) {
+            std::vector<family> out;
             std::size_t start = 0;
             while (start <= list.size()) {
                 auto end = list.find(',', start);
                 if (end == std::string::npos) end = list.size();
-                std::string name = list.substr(start, end - start);
+                const std::string name = list.substr(start, end - start);
                 start = end + 1;
                 const auto first = name.find_first_not_of(" \t\"'"), last = name.find_last_not_of(" \t\"'");
                 if (first == std::string::npos) continue;
-                name = name.substr(first, last - first + 1);
-                std::string lower = name;
-                std::ranges::transform(lower, lower.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                auto trimmed = name.substr(first, last - first + 1);
+                auto lower = sc::lowercase(trimmed);
+                out.push_back({std::move(trimmed), std::move(lower)});
+            }
+            return out;
+        }
+
+        // The first installed family in a list, or a generic one, or fallback.
+        std::string family_of(const std::string &list, const std::string &fallback) {
+            std::string generic;
+            for (const auto &[name, lower]: families(list)) {
                 if (lower == "serif" || lower == "sans-serif" || lower == "monospace" || lower == "cursive" || lower == "fantasy") {
                     if (generic.empty()) generic = lower;
                     continue;
@@ -133,17 +145,7 @@ namespace sc::web::detail {
                 {"tinos", "Times"}, {"nimbus roman", "Times"}, {"serif", "Times"}, {"ui-serif", "Times"},
                 {"courier", "Courier"}, {"courier new", "Courier"}, {"liberation mono", "Courier"}, {"cousine", "Courier"},
                 {"nimbus mono ps", "Courier"}, {"monospace", "Courier"}, {"ui-monospace", "Courier"}};
-            std::size_t start = 0;
-            while (start <= list.size()) {
-                auto end = list.find(',', start);
-                if (end == std::string::npos) end = list.size();
-                std::string name = list.substr(start, end - start);
-                start = end + 1;
-                const auto first = name.find_first_not_of(" \t\"'"), last = name.find_last_not_of(" \t\"'");
-                if (first == std::string::npos) continue;
-                name = name.substr(first, last - first + 1);
-                std::string lower = name;
-                std::ranges::transform(lower, lower.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            for (const auto &[name, lower]: families(list)) {
                 if (const auto found = builtin.find(lower); found != builtin.end()) return found->second;
                 if (sc::font{name}.available()) return name;
             }
@@ -217,9 +219,15 @@ namespace sc::web::detail {
             const auto head = std::string_view{bytes}.substr(start, 512);
             return head.starts_with("<svg") || ((head.starts_with("<?xml") || head.starts_with("<!")) && head.find("<svg") != std::string_view::npos);
         }
+
+        void draw_picture(sc::canvas &canvas, const picture &image, const rect &at) {
+            if (image.raster) canvas.draw(*image.raster, at);
+            else canvas.draw(*image.vector, at);
+        }
     }
 
     container::container(html::options settings) : settings_(std::move(settings)), base_url_(settings_.base_url) {
+        if (!settings_.fetch) settings_.fetch = html::default_fetch;
     }
 
     std::string container::resolved(const char *src, const char *baseurl) const {
@@ -345,8 +353,7 @@ namespace sc::web::detail {
         const auto url = resolved(src, baseurl);
         if (url.empty() || pictures_.contains(url)) return;
         auto &slot = pictures_[url];
-        const auto &fetch = settings_.fetch ? settings_.fetch : html::fetcher{html::default_fetch};
-        const auto bytes = fetch(url);
+        const auto bytes = settings_.fetch(url);
         if (!bytes || bytes->empty()) return;
         try {
             if (sc::bitmap::recognised(*bytes)) {
@@ -374,10 +381,7 @@ namespace sc::web::detail {
         auto &canvas = canvas_of(hdc);
         const auto placed = tiles(layer);
         clip_scope clip{canvas, background_clip(layer, placed)};
-        for (const auto &tile: placed) {
-            if (found->raster) canvas.draw(*found->raster, tile);
-            else canvas.draw(*found->vector, tile);
-        }
+        for (const auto &tile: placed) draw_picture(canvas, *found, tile);
     }
 
     void container::draw_list_marker(const litehtml::uint_ptr hdc, const litehtml::list_marker &marker) {
@@ -386,9 +390,7 @@ namespace sc::web::detail {
         if (!marker.image.empty()) {
             load_image(marker.image.c_str(), marker.baseurl, false);
             if (const auto *found = find(resolved(marker.image.c_str(), marker.baseurl))) {
-                const rect at{box.left(), box.top(), found->size.width(), found->size.height()};
-                if (found->raster) canvas.draw(*found->raster, at);
-                else canvas.draw(*found->vector, at);
+                draw_picture(canvas, *found, {box.left(), box.top(), found->size.width(), found->size.height()});
             }
             return;
         }
@@ -438,34 +440,24 @@ namespace sc::web::detail {
     namespace {
         // A gradient sc::canvas can't draw yet, as the colour halfway through it.
         // TODO: radial and conic gradients.
-        sc::color middle_colour(const litehtml::background_layer::gradient_base &gradient) {
+        litehtml::web_color middle_colour(const litehtml::background_layer::gradient_base &gradient) {
             if (gradient.color_points.empty()) return {0, 0, 0, 0};
             std::vector<sc::linear_gradient::stop> stops;
             for (const auto &point: gradient.color_points) stops.push_back({point.offset, colour_of(point.color)});
-            return sc::linear_gradient{{0, 0}, {1, 0}, stops}.colour_at(0.5);
+            const auto middle = sc::linear_gradient{{0, 0}, {1, 0}, stops}.colour_at(0.5);
+            return {static_cast<litehtml::byte>(middle.red() * 255), static_cast<litehtml::byte>(middle.green() * 255),
+                    static_cast<litehtml::byte>(middle.blue() * 255), static_cast<litehtml::byte>(middle.alpha() * 255)};
         }
     }
 
     void container::draw_radial_gradient(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                                          const litehtml::background_layer::radial_gradient &gradient) {
-        litehtml::web_color c;
-        const auto middle = middle_colour(gradient);
-        c.red = static_cast<litehtml::byte>(middle.red() * 255);
-        c.green = static_cast<litehtml::byte>(middle.green() * 255);
-        c.blue = static_cast<litehtml::byte>(middle.blue() * 255);
-        c.alpha = static_cast<litehtml::byte>(middle.alpha() * 255);
-        draw_solid_fill(hdc, layer, c);
+        draw_solid_fill(hdc, layer, middle_colour(gradient));
     }
 
     void container::draw_conic_gradient(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                                         const litehtml::background_layer::conic_gradient &gradient) {
-        litehtml::web_color c;
-        const auto middle = middle_colour(gradient);
-        c.red = static_cast<litehtml::byte>(middle.red() * 255);
-        c.green = static_cast<litehtml::byte>(middle.green() * 255);
-        c.blue = static_cast<litehtml::byte>(middle.blue() * 255);
-        c.alpha = static_cast<litehtml::byte>(middle.alpha() * 255);
-        draw_solid_fill(hdc, layer, c);
+        draw_solid_fill(hdc, layer, middle_colour(gradient));
     }
 
     // ---------------------------------------------------------------- borders
@@ -618,8 +610,7 @@ namespace sc::web::detail {
 
     void container::import_css(litehtml::string &text, const litehtml::string &url, litehtml::string &baseurl) {
         const auto where = resolved(url.c_str(), baseurl.c_str());
-        const auto &fetch = settings_.fetch ? settings_.fetch : html::fetcher{html::default_fetch};
-        text = fetch(where).value_or("");
+        text = settings_.fetch(where).value_or("");
         baseurl = where; // what the stylesheet's own URLs are relative to
     }
 
