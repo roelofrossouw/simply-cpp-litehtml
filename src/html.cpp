@@ -85,8 +85,6 @@ namespace sc::web {
         const litehtml::element &node_of(const std::shared_ptr<const void> &node) { return *static_cast<const litehtml::element *>(node.get()); }
     }
 
-    // element
-
     std::string html::element::name() const {
         const char *tag = node_of(node_).get_tagName();
         return tag ? tag : "";
@@ -108,8 +106,6 @@ namespace sc::web {
         auto *node = const_cast<litehtml::element *>(&node_of(node_));
         return border_box(node->shared_from_this());
     }
-
-    // html
 
     html::html(const std::string_view text, options settings) : data_(std::make_shared<detail::html_data>(text, std::move(settings))) {
     }
