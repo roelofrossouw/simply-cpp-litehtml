@@ -16,7 +16,28 @@
 namespace sc::web {
     namespace detail {
         struct html_data;
+        struct picture_store;
+        class container;
     }
+
+    /// Images read once for several documents: give each the same cache (a copy shares it) and
+    /// every URL is fetched and decoded once, and drawn as the very same bitmap, which an sc::pdf
+    /// then holds once. For a header or footer laid out again on every page.
+    ///
+    ///     sc::web::html::options options;
+    ///     options.images = sc::web::image_cache{};
+    ///     for (...) sc::web::html footer{footer_html, options};   // the logo read once
+    ///
+    /// By resolved URL: the documents should fetch alike.
+    class image_cache {
+    public:
+        image_cache();
+
+    private:
+        friend class detail::container;
+        std::shared_ptr<detail::picture_store> store_;
+    };
+
 
     /// Where an HTML document finds what it links to (stylesheets, images), by the URL resolved
     /// against its base; nothing when it can't. The default reads data: URIs, local files and http(s).
@@ -42,6 +63,8 @@ namespace sc::web {
         bool builtin_fonts = false;
         /// Fetches stylesheets and images; empty for the default (html::default_fetch()).
         html_fetcher fetch;
+        /// Images shared with other documents; without it, the document reads its own.
+        std::optional<image_cache> images;
     };
 
     /// An HTML document with its CSS, laid out to a width and drawn on any sc::canvas: an sc::pdf,

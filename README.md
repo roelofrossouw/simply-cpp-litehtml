@@ -48,7 +48,9 @@ document's top-left corner, y down. Fonts are found and measured through
 `sc::font` (fontconfig), as sc-pdf and sc-mupdf draw them; a CSS font list
 takes its first installed family, else its generic one. Stylesheets
 (`<link>`, `@import`) and images come through `options.fetch`, by default from
-data: URIs, local files and http(s) (sc-core's `sc::rest`).
+data: URIs, local files and http(s) (sc-core's `sc::rest`). Documents given the
+same `options.images` (an `sc::web::image_cache`) read each image once and draw
+the same bitmap, which a PDF then holds once: for a header laid out on every page.
 
 With `options.builtin_fonts`, text is in PDF's built-in fonts: CSS families map to Helvetica
 (Arial, `sans-serif`), Times (Times New Roman, `serif`) or Courier (Courier New, `monospace`), and

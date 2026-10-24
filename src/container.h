@@ -23,6 +23,11 @@ namespace sc::web::detail {
         sc::size size;
     };
 
+    // The images documents read, by resolved URL; nothing for one that didn't load.
+    struct picture_store {
+        std::map<std::string, std::optional<picture> > pictures;
+    };
+
     class container final : public litehtml::document_container {
     public:
         explicit container(html::options settings);
@@ -114,7 +119,7 @@ namespace sc::web::detail {
         html::options settings_;
         std::string base_url_; // a <base href>, else the settings'
         std::vector<std::optional<font_entry> > fonts_; // a font's handle is its index + 1
-        std::map<std::string, std::optional<picture> > pictures_; // by resolved URL; nothing when it didn't load
+        std::shared_ptr<picture_store> pictures_; // the settings' image cache's, or the document's own
         int clips_ = 0; // pushed on the target and not yet popped
 
         [[nodiscard]] std::string resolved(const char *src, const char *baseurl) const;

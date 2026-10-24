@@ -226,7 +226,9 @@ namespace sc::web::detail {
         }
     }
 
-    container::container(html::options settings) : settings_(std::move(settings)), base_url_(settings_.base_url) {
+    container::container(html::options settings)
+        : settings_(std::move(settings)), base_url_(settings_.base_url),
+          pictures_(settings_.images ? settings_.images->store_ : std::make_shared<picture_store>()) {
         if (!settings_.fetch) settings_.fetch = html::default_fetch;
     }
 
@@ -236,8 +238,8 @@ namespace sc::web::detail {
     }
 
     const picture *container::find(const std::string &url) const {
-        const auto found = pictures_.find(url);
-        return found != pictures_.end() && found->second ? &*found->second : nullptr;
+        const auto found = pictures_->pictures.find(url);
+        return found != pictures_->pictures.end() && found->second ? &*found->second : nullptr;
     }
 
 
@@ -348,8 +350,8 @@ namespace sc::web::detail {
 
     void container::load_image(const char *src, const char *baseurl, bool) {
         const auto url = resolved(src, baseurl);
-        if (url.empty() || pictures_.contains(url)) return;
-        auto &slot = pictures_[url];
+        if (url.empty() || pictures_->pictures.contains(url)) return;
+        auto &slot = pictures_->pictures[url];
         const auto bytes = settings_.fetch(url);
         if (!bytes || bytes->empty()) return;
         try {

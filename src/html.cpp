@@ -85,6 +85,9 @@ namespace sc::web {
         const litehtml::element &node_of(const std::shared_ptr<const void> &node) { return *static_cast<const litehtml::element *>(node.get()); }
     }
 
+    image_cache::image_cache() : store_(std::make_shared<detail::picture_store>()) {
+    }
+
     std::string html::element::name() const {
         const char *tag = node_of(node_).get_tagName();
         return tag ? tag : "";
