@@ -7,7 +7,10 @@
 #include <base64.h>
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <map>
+#include <random>
 #include <string>
 #include <variant>
 
@@ -113,6 +116,23 @@ int main() {
         CHECK_EQ(fetched, 2);
         CHECK(&one.bytes() == &two.bytes());
         CHECK(&alone.bytes() != &one.bytes());
+    }
+
+    SECTION("An image given as a file on disk is read from there, even with a web base");
+    {
+        const auto file = std::filesystem::temp_directory_path() / ("sc-litehtml-test-" + std::to_string(std::random_device{}()) + ".png");
+        { std::ofstream{file, std::ios::binary} << sc::base64::decode(png.substr(png.find(',') + 1)); }
+        sc::web::html::options settings;
+        settings.base_url = "https://example.invalid/site/";
+        settings.fetch = [](const std::string &url) -> std::optional<std::string> {
+            if (url.starts_with("https://")) return std::nullopt; // no network in the test
+            return sc::web::html::default_fetch(url);
+        };
+        sc::web::html page{"<img src='" + file.string() + "'><img src='/no/such/logo.png'>", settings};
+        page.layout(300);
+        CHECK_EQ(count<sc::figure>(page.drawing()), std::size_t{1}); // the missing one stays a web path
+        CHECK_EQ(page.select("img")[0].box().width(), 3.0);
+        std::filesystem::remove(file);
     }
 
     SECTION("An SVG image is drawn as shapes");

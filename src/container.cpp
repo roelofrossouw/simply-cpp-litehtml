@@ -8,8 +8,10 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <filesystem>
 #include <map>
 #include <stdexcept>
+#include <system_error>
 #include <utility>
 
 namespace sc::web::detail {
@@ -234,7 +236,14 @@ namespace sc::web::detail {
 
     std::string container::resolved(const char *src, const char *baseurl) const {
         const std::string base = baseurl && *baseurl ? std::string{baseurl} : base_url_;
-        return html::resolve(src ? src : "", base);
+        // A file on this machine's disk, as server-side code gives them ("/var/www/logo.png"): read
+        // from there even under a web base, which would make it a page on that site.
+        const std::string path{src ? src : ""};
+        if (path.starts_with('/') && !path.starts_with("//") && (base.starts_with("http://") || base.starts_with("https://"))) {
+            std::error_code ignored;
+            if (std::filesystem::is_regular_file(path, ignored)) return path;
+        }
+        return html::resolve(path, base);
     }
 
     const picture *container::find(const std::string &url) const {

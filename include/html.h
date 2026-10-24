@@ -46,7 +46,9 @@ namespace sc::web {
     struct html_options {
         /// CSS after the browser's defaults and before the document's own.
         std::string css;
-        /// What relative URLs are resolved against: a folder or file, or an http(s) URL.
+        /// What relative URLs are resolved against: a folder or file, or an http(s) URL. An image or
+        /// stylesheet given as an absolute path that is a file on this machine ("/var/www/logo.png")
+        /// is read from there, even with an http(s) base.
         std::string base_url;
         /// The font for text that names none (its size in px; 16 as in browsers).
         sc::font font{"sans-serif", 16};
