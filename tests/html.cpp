@@ -91,6 +91,30 @@ int main() {
         CHECK_EQ(images[1].box().height(), 20.0);
     }
 
+    SECTION("An image cache: documents sharing it fetch an image once and draw the same bitmap");
+    {
+        int fetched = 0;
+        sc::web::html::options settings;
+        settings.fetch = [&](const std::string &url) -> std::optional<std::string> {
+            ++fetched;
+            return sc::web::html::default_fetch(url);
+        };
+        const auto first_bitmap = [](sc::web::html page) {
+            page.layout(300);
+            const auto picture = page.drawing();
+            for (const auto &item: picture.items())
+                if (const auto *shown = std::get_if<sc::figure>(&item)) return shown->bitmap;
+            throw std::runtime_error("no image drawn");
+        };
+        const auto alone = first_bitmap(sc::web::html{"<img src='" + png + "'>", settings});
+        settings.images = sc::web::image_cache{};
+        const auto one = first_bitmap(sc::web::html{"<img src='" + png + "'>", settings});
+        const auto two = first_bitmap(sc::web::html{"<p>Again</p><img src='" + png + "'>", settings});
+        CHECK_EQ(fetched, 2);
+        CHECK(&one.bytes() == &two.bytes());
+        CHECK(&alone.bytes() != &one.bytes());
+    }
+
     SECTION("An SVG image is drawn as shapes");
     {
         const std::string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>)";
