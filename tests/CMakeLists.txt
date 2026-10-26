@@ -7,8 +7,8 @@ add_sc_test(html LABELS unit)
 # litehtml's own render tests, drawn by sc-litehtml (upstream.cpp): litehtml-tests at the commit our
 # litehtml pins (third_party/litehtml/CMakeLists.txt), downloaded once into ~/.cache/simply-cpp.
 # Without it (offline), test-upstream says so and passes. It checks the pages in upstream/pages.txt.
-set(LITEHTML_TESTS_COMMIT f750c7c4c1f0b2db63049f45ce505442b2685fa6)
-set(LITEHTML_TESTS_SHA256 a43a7b499fd6fbb41aa9ac8892db533b524e2de17e8103363dbbe5ae62c50c2b)
+set(LITEHTML_TESTS_COMMIT 8bb5f1bf4888e40a536ceb92ccc8c43c8701fb97)
+set(LITEHTML_TESTS_SHA256 4a5d7e69ffdfe60268da3c072111ed23617377ddf35aeae967eee034c3c78225)
 if (DEFINED ENV{HOME})
     set(litehtml_tests_cache "$ENV{HOME}/.cache/simply-cpp")
 else ()

@@ -271,19 +271,19 @@ namespace sc::web::detail {
             entry.x_height = entry.standard->x_height(size);
         }
         if (metrics) {
-            metrics->font_size = static_cast<litehtml::pixel_t>(size);
-            metrics->ascent = static_cast<litehtml::pixel_t>(entry.ascent);
-            metrics->descent = static_cast<litehtml::pixel_t>(entry.descent);
+            metrics->font_size = px(size);
+            metrics->ascent = px(entry.ascent);
+            metrics->descent = px(entry.descent);
             // A built-in font's normal line height is 1.15 of its size, as browsers give Arial,
             // Times New Roman and Courier New (the same metrics).
             const double line = entry.standard ? size * 1.15 : font.line_height();
-            metrics->height = static_cast<litehtml::pixel_t>(line > 0 ? std::max(line, entry.ascent + entry.descent) : entry.ascent + entry.descent);
-            metrics->x_height = static_cast<litehtml::pixel_t>(entry.x_height);
+            metrics->height = px(line > 0 ? std::max(line, entry.ascent + entry.descent) : entry.ascent + entry.descent);
+            metrics->x_height = px(entry.x_height);
             const double zero = entry.standard ? entry.standard->width("0", size) : font.width("0");
-            metrics->ch_width = static_cast<litehtml::pixel_t>(zero > 0 ? zero : size * 0.5);
+            metrics->ch_width = px(zero > 0 ? zero : size * 0.5);
             metrics->draw_spaces = false; // words are placed one by one; spaces only move them
-            metrics->sub_shift = static_cast<litehtml::pixel_t>(size / 5);
-            metrics->super_shift = static_cast<litehtml::pixel_t>(size / 3);
+            metrics->sub_shift = px(size / 5);
+            metrics->super_shift = px(size / 3);
         }
         fonts_.emplace_back(std::move(entry));
         return static_cast<litehtml::uint_ptr>(fonts_.size());
@@ -314,9 +314,9 @@ namespace sc::web::detail {
     litehtml::pixel_t container::text_width(const char *text, const litehtml::uint_ptr font) {
         if (font == 0 || font > fonts_.size() || !fonts_[font - 1] || !text || !*text) return 0;
         const auto &entry = *fonts_[font - 1];
-        if (entry.standard) return static_cast<litehtml::pixel_t>(standard_width(entry, text));
+        if (entry.standard) return px(standard_width(entry, text));
         const double measured = entry.font.width(text);
-        return static_cast<litehtml::pixel_t>(measured > 0 ? measured : std::char_traits<char>::length(text) * entry.font.size * 0.5);
+        return px(measured > 0 ? measured : std::char_traits<char>::length(text) * entry.font.size * 0.5);
     }
 
     void container::draw_text(const litehtml::uint_ptr hdc, const char *text, const litehtml::uint_ptr font, const litehtml::web_color colour,
@@ -324,7 +324,7 @@ namespace sc::web::detail {
         if (font == 0 || font > fonts_.size() || !fonts_[font - 1] || !text) return;
         auto &canvas = canvas_of(hdc);
         const auto &entry = *fonts_[font - 1];
-        const double baseline = pos.y + pos.height - entry.descent;
+        const double baseline = value(pos.y + pos.height) - entry.descent;
         canvas.draw(sc::text{text, {pos.x, baseline}, entry.font}, colour_of(colour));
         if (entry.decoration == litehtml::text_decoration_line_none) return;
         const double thickness = std::max(1.0, entry.font.size / 14);
@@ -340,11 +340,11 @@ namespace sc::web::detail {
 
     litehtml::pixel_t container::pt_to_px(const float pt) const { return pt * 96.0f / 72.0f; }
 
-    litehtml::pixel_t container::get_default_font_size() const { return static_cast<litehtml::pixel_t>(settings_.font.size); }
+    litehtml::pixel_t container::get_default_font_size() const { return px(settings_.font.size); }
 
     const char *container::get_default_font_name() const { return settings_.font.family.c_str(); }
 
-    void container::transform_text(litehtml::string &text, const litehtml::text_transform tt) {
+    void container::transform_text(std::string &text, const litehtml::text_transform tt) {
         // ASCII letters only: others stay as written.
         bool start = true;
         for (auto &c: text) {
@@ -379,13 +379,13 @@ namespace sc::web::detail {
 
     void container::get_image_size(const char *src, const char *baseurl, litehtml::size &size) {
         const auto *found = find(resolved(src, baseurl));
-        size.width = found ? static_cast<litehtml::pixel_t>(found->size.width()) : 0;
-        size.height = found ? static_cast<litehtml::pixel_t>(found->size.height()) : 0;
+        size.width = found ? px(found->size.width()) : px(0);
+        size.height = found ? px(found->size.height()) : px(0);
     }
 
     void container::draw_image(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer, const std::string &url, const std::string &base_url) {
         const auto *found = find(resolved(url.c_str(), base_url.c_str()));
-        if (!found || layer.clip_box.width <= 0 || layer.clip_box.height <= 0) return;
+        if (!found || value(layer.clip_box.width) <= 0 || value(layer.clip_box.height) <= 0) return;
         auto &canvas = canvas_of(hdc);
         const auto placed = tiles(layer);
         clip_scope clip{canvas, background_clip(layer, placed)};
@@ -438,7 +438,7 @@ namespace sc::web::detail {
         // The gradient is placed for the origin box's tile; each other tile has it moved along, and
         // is cut to where the background shows.
         for (const auto &tile: tiles(layer)) {
-            const double dx = tile.left() - layer.origin_box.x, dy = tile.top() - layer.origin_box.y;
+            const double dx = tile.left() - value(layer.origin_box.x), dy = tile.top() - value(layer.origin_box.y);
             const sc::linear_gradient paint{{gradient.start.x + dx, gradient.start.y + dy}, {gradient.end.x + dx, gradient.end.y + dy}, stops};
             canvas.draw(rect_path(tile.intersect(visible)), sc::appearance::filled(paint));
         }
@@ -470,7 +470,7 @@ namespace sc::web::detail {
 
     namespace {
         bool shows(const litehtml::border &side) {
-            return side.width > 0 && side.color.alpha > 0 && side.style != litehtml::border_style_none && side.style != litehtml::border_style_hidden;
+            return value(side.width) > 0 && side.color.alpha > 0 && side.style != litehtml::border_style_none && side.style != litehtml::border_style_hidden;
         }
 
         // The band between fractions from and to of the border's width, as a ring.
@@ -536,7 +536,7 @@ namespace sc::web::detail {
         const rect box = rect_of(draw_pos);
         const radii corners = radii_of(borders.radius);
         std::array<double, 4> widths{};
-        for (int i = 0; i < 4; ++i) widths[i] = shows(*sides[i]) ? sides[i]->width : 0;
+        for (int i = 0; i < 4; ++i) widths[i] = shows(*sides[i]) ? value(sides[i]->width) : 0;
 
         // One colour and style all round, solid or double: the ring itself.
         const auto &first = *std::ranges::find_if(sides, [](const auto *side) { return shows(*side); });
@@ -612,14 +612,14 @@ namespace sc::web::detail {
     void container::set_cursor(const char *) {
     }
 
-    void container::import_css(litehtml::string &text, const litehtml::string &url, litehtml::string &baseurl) {
+    void container::import_css(std::string &text, const std::string &url, std::string &baseurl) {
         const auto where = resolved(url.c_str(), baseurl.c_str());
         text = settings_.fetch(where).value_or("");
         baseurl = where; // what the stylesheet's own URLs are relative to
     }
 
     void container::get_viewport(litehtml::position &viewport) const {
-        viewport = {0, 0, static_cast<litehtml::pixel_t>(layout_width), static_cast<litehtml::pixel_t>(viewport_height())};
+        viewport = {0, 0, px(layout_width), px(viewport_height())};
     }
 
     litehtml::element::ptr container::create_element(const char *, const litehtml::string_map &, const std::shared_ptr<litehtml::document> &) {
@@ -628,8 +628,8 @@ namespace sc::web::detail {
 
     void container::get_media_features(litehtml::media_features &media) const {
         media.type = settings_.media == "screen" ? litehtml::media_type_screen : litehtml::media_type_print;
-        media.width = static_cast<litehtml::pixel_t>(layout_width);
-        media.height = static_cast<litehtml::pixel_t>(viewport_height());
+        media.width = px(layout_width);
+        media.height = px(viewport_height());
         media.device_width = media.width;
         media.device_height = media.height;
         media.color = 8;
@@ -638,7 +638,7 @@ namespace sc::web::detail {
         media.resolution = 96;
     }
 
-    void container::get_language(litehtml::string &language, litehtml::string &culture) const {
+    void container::get_language(std::string &language, std::string &culture) const {
         language = "en";
         culture.clear();
     }

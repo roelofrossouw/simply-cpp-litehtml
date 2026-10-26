@@ -13,9 +13,8 @@ it to write HTML as pages of a PDF.
 
 **sc-litehtml is Apache-2.0.** litehtml (BSD-3-Clause) and the gumbo HTML
 parser it ships (Apache-2.0) are vendored in `third_party/litehtml`, a git
-subtree of [roelofrossouw/litehtml](https://github.com/roelofrossouw/litehtml)
-(upstream plus a fix that leaves a justified paragraph's last line alone), and
-compiled into this module's libraries. Their headers stay out of the installed
+subtree of [litehtml/litehtml](https://github.com/litehtml/litehtml) (master),
+and compiled into this module's libraries. Their headers stay out of the installed
 ones: `sc::web::html` is all a program sees, so another engine can take
 litehtml's place behind it.
 

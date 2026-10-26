@@ -16,6 +16,10 @@
 #include <vector>
 
 namespace sc::web::detail {
+    // A length in CSS px as litehtml's pixel type, which holds a float, and back.
+    inline litehtml::pixel_t px(const double value) { return static_cast<float>(value); }
+    inline double value(const litehtml::pixel_t length) { return static_cast<float>(length); }
+
     // An image a document uses: a PNG or JPEG, or an SVG read as a drawing; its size in px.
     struct picture {
         std::optional<sc::bitmap> raster;
@@ -90,9 +94,9 @@ namespace sc::web::detail {
 
         void set_cursor(const char *cursor) override;
 
-        void transform_text(litehtml::string &text, litehtml::text_transform tt) override;
+        void transform_text(std::string &text, litehtml::text_transform tt) override;
 
-        void import_css(litehtml::string &text, const litehtml::string &url, litehtml::string &baseurl) override;
+        void import_css(std::string &text, const std::string &url, std::string &baseurl) override;
 
         void set_clip(const litehtml::position &pos, const litehtml::border_radiuses &radius) override;
 
@@ -105,7 +109,7 @@ namespace sc::web::detail {
 
         void get_media_features(litehtml::media_features &media) const override;
 
-        void get_language(litehtml::string &language, litehtml::string &culture) const override;
+        void get_language(std::string &language, std::string &culture) const override;
 
     private:
         struct font_entry {

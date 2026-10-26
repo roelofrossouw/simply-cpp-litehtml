@@ -120,7 +120,7 @@ namespace sc::web {
     double html::layout(const double width) {
         data_->host.layout_width = width;
         data_->document->media_changed(); // @media rules see the new width
-        data_->fitted = data_->document->render(static_cast<litehtml::pixel_t>(width));
+        data_->fitted = data_->document->render(detail::px(width));
         data_->laid_out = true;
         return height();
     }
@@ -142,8 +142,8 @@ namespace sc::web {
         auto &host = data_->host;
         host.target = &canvas;
         litehtml::position limit;
-        if (clip) limit = {static_cast<litehtml::pixel_t>(clip->left()), static_cast<litehtml::pixel_t>(clip->top()),
-                           static_cast<litehtml::pixel_t>(clip->width()), static_cast<litehtml::pixel_t>(clip->height())};
+        if (clip) limit = {detail::px(clip->left()), detail::px(clip->top()),
+                           detail::px(clip->width()), detail::px(clip->height())};
         try {
             data_->document->draw(reinterpret_cast<litehtml::uint_ptr>(&canvas), 0, 0, clip ? &limit : nullptr);
         } catch (...) {

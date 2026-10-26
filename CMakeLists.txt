@@ -18,18 +18,18 @@ set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
 
 # litehtml (BSD-3-Clause) and the gumbo HTML parser it ships (Apache-2.0), vendored in
-# third_party/litehtml as a git subtree of roelofrossouw/litehtml, are compiled into this module's
+# third_party/litehtml as a git subtree of litehtml/litehtml (master), are compiled into this module's
 # libraries; their headers stay out of the installed ones.
 set(LITEHTML_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/litehtml)
 file(GLOB LITEHTML_SOURCES CONFIGURE_DEPENDS ${LITEHTML_DIR}/src/*.cpp)
-file(GLOB GUMBO_SOURCES CONFIGURE_DEPENDS ${LITEHTML_DIR}/src/gumbo/*.c)
-set(LITEHTML_INCLUDE_DIRS ${LITEHTML_DIR}/include ${LITEHTML_DIR}/src ${LITEHTML_DIR}/src/gumbo/include)
+file(GLOB GUMBO_SOURCES CONFIGURE_DEPENDS ${LITEHTML_DIR}/src/gumbo/src/*.c)
+set(LITEHTML_INCLUDE_DIRS ${LITEHTML_DIR}/include ${LITEHTML_DIR}/src ${LITEHTML_DIR}/src/gumbo/src)
 add_library(sc-litehtml-engine OBJECT ${LITEHTML_SOURCES} ${GUMBO_SOURCES})
 # Hidden from other libraries: MuPDF links the system's gumbo, which litehtml's own copy (changed)
 # mustn't stand in for, or the other way round, in a program using both.
 set_target_properties(sc-litehtml-engine PROPERTIES POSITION_INDEPENDENT_CODE ON C_STANDARD 99 EXCLUDE_FROM_ALL ON
         C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
-target_include_directories(sc-litehtml-engine PRIVATE ${LITEHTML_INCLUDE_DIRS} ${LITEHTML_DIR}/include/litehtml ${LITEHTML_DIR}/src/gumbo/include/gumbo)
+target_include_directories(sc-litehtml-engine PRIVATE ${LITEHTML_INCLUDE_DIRS} ${LITEHTML_DIR}/include/litehtml)
 target_compile_options(sc-litehtml-engine PRIVATE -w) # upstream's code, upstream's warnings
 list(APPEND SOURCE_OBJECTS $<TARGET_OBJECTS:sc-litehtml-engine>)
 
