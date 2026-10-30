@@ -30,6 +30,8 @@ namespace sc::web::detail {
     // The images documents read, by resolved URL; nothing for one that didn't load.
     struct picture_store {
         std::map<std::string, std::optional<picture> > pictures;
+        // Images that can't be made, by URL, and why: a qr: URI with too much data, say.
+        std::map<std::string, std::string> problems;
     };
 
     class container final : public litehtml::document_container {
@@ -42,6 +44,9 @@ namespace sc::web::detail {
         std::string caption;
 
         [[nodiscard]] const html::options &settings() const { return settings_; }
+        // The first image this document needs and can't have (a qr: URI's data too long), as an
+        // error's message; empty when there's none.
+        [[nodiscard]] const std::string &problem() const { return problem_; }
 
         // The settings' viewport height, or an A-series page's proportions.
         [[nodiscard]] double viewport_height() const { return settings_.viewport_height.value_or(layout_width * 1.414); }
@@ -125,8 +130,10 @@ namespace sc::web::detail {
         std::vector<std::optional<font_entry> > fonts_; // a font's handle is its index + 1
         std::shared_ptr<picture_store> pictures_; // the settings' image cache's, or the document's own
         int clips_ = 0; // pushed on the target and not yet popped
+        std::string problem_;
 
         [[nodiscard]] std::string resolved(const char *src, const char *baseurl) const;
+        static picture qr_picture(std::string_view url);
 
         [[nodiscard]] const picture *find(const std::string &url) const;
 

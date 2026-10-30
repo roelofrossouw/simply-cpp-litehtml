@@ -1,12 +1,15 @@
 #include "container.h"
 
+#include <base64.h>
 #include <core.h>
 #include <paint.h>
 #include <path.h>
+#include <sc_qrencode.h>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <cmath>
 #include <filesystem>
 #include <map>
@@ -228,6 +231,69 @@ namespace sc::web::detail {
         }
     }
 
+    // qr:[settings][;base64],data, as a data: URI is written: the data's QR code as a drawing, 4 px
+    // a module. Settings: correction=L, M (the default), Q or H (or low ... high) and margin=N, the
+    // quiet zone in modules (4 by default). Without a comma, everything after "qr:" is the data.
+    // Throws std::invalid_argument for a setting it doesn't know, std::length_error for data too
+    // long for a QR code, std::runtime_error for base64 that isn't.
+    picture container::qr_picture(const std::string_view url) {
+        auto rest = url.substr(3);
+        std::string_view header;
+        if (const auto comma = rest.find(','); comma != std::string_view::npos) {
+            header = rest.substr(0, comma);
+            rest = rest.substr(comma + 1);
+        }
+        auto level = sc::qr::correction::medium;
+        int margin = 4;
+        bool base64 = false;
+        std::size_t start = 0;
+        while (start <= header.size()) {
+            auto end = header.find(';', start);
+            if (end == std::string_view::npos) end = header.size();
+            auto setting = std::string{header.substr(start, end - start)};
+            start = end + 1;
+            std::ranges::transform(setting, setting.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (setting.empty()) continue;
+            if (setting == "base64") {
+                base64 = true;
+            } else if (setting.starts_with("correction=")) {
+                static const std::map<std::string, sc::qr::correction> levels{
+                        {"l", sc::qr::correction::low},          {"low", sc::qr::correction::low},     {"m", sc::qr::correction::medium},
+                        {"medium", sc::qr::correction::medium}, {"q", sc::qr::correction::quartile}, {"quartile", sc::qr::correction::quartile},
+                        {"h", sc::qr::correction::high},        {"high", sc::qr::correction::high}};
+                const auto found = levels.find(setting.substr(11));
+                if (found == levels.end()) throw std::invalid_argument("correction is L, M, Q or H");
+                level = found->second;
+            } else if (setting.starts_with("margin=")) {
+                const auto text = setting.substr(7);
+                const auto [end_of, error] = std::from_chars(text.data(), text.data() + text.size(), margin);
+                if (error != std::errc{} || end_of != text.data() + text.size() || margin < 0 || margin > 100)
+                    throw std::invalid_argument("margin is 0 to 100 modules");
+            } else {
+                throw std::invalid_argument("unknown setting '" + setting + "' (correction, margin, base64)");
+            }
+        }
+        std::string data;
+        if (base64) {
+            data = sc::base64::decode(rest);
+        } else { // percent-decoded, as a URL's text
+            for (std::size_t i = 0; i < rest.size(); ++i) {
+                const auto hex = [](const char c) { return std::isxdigit(static_cast<unsigned char>(c)) != 0; };
+                if (rest[i] == '%' && i + 2 < rest.size() && hex(rest[i + 1]) && hex(rest[i + 2])) {
+                    data += static_cast<char>(std::stoi(std::string{rest.substr(i + 1, 2)}, nullptr, 16));
+                    i += 2;
+                } else {
+                    data += rest[i];
+                }
+            }
+        }
+        if (data.empty()) throw std::invalid_argument("no data to encode");
+        const auto code = data.find('\0') == std::string::npos ? sc::qr::code{data, level} : sc::qr::code::binary(data, level);
+        auto drawing = sc::drawing::from_svg(code.svg(std::nullopt, margin));
+        const double side = 4.0 * (code.size() + 2 * margin);
+        return picture{std::nullopt, std::move(drawing), sc::size{side, side}};
+    }
+
     container::container(html::options settings)
         : settings_(std::move(settings)), base_url_(settings_.base_url),
           pictures_(settings_.images ? settings_.images->store_ : std::make_shared<picture_store>()) {
@@ -359,8 +425,23 @@ namespace sc::web::detail {
 
     void container::load_image(const char *src, const char *baseurl, bool) {
         const auto url = resolved(src, baseurl);
-        if (url.empty() || pictures_->pictures.contains(url)) return;
+        if (url.empty()) return;
+        if (const auto known = pictures_->problems.find(url); known != pictures_->problems.end()) {
+            if (problem_.empty()) problem_ = known->second;
+            return;
+        }
+        if (pictures_->pictures.contains(url)) return;
         auto &slot = pictures_->pictures[url];
+        if (url.starts_with("qr:")) { // made here, whatever fetches the rest
+            try {
+                slot = qr_picture(url);
+            } catch (const std::exception &failure) {
+                const auto shown = url.size() > 60 ? url.substr(0, 57) + "..." : url;
+                pictures_->problems[url] = "sc::web::html: image " + shown + ": " + failure.what();
+                if (problem_.empty()) problem_ = pictures_->problems[url];
+            }
+            return;
+        }
         const auto bytes = settings_.fetch(url);
         if (!bytes || bytes->empty()) return;
         try {

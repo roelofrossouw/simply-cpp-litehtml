@@ -51,6 +51,13 @@ data: URIs, local files and http(s) (sc-core's `sc::rest`). Documents given the
 same `options.images` (an `sc::web::image_cache`) read each image once and draw
 the same bitmap, which a PDF then holds once: for a header laid out on every page.
 
+An image whose URL starts with `qr:` is a QR code of what follows (sc-qrencode), drawn as vector
+shapes, written like a data: URI: `qr:[correction=L|M|Q|H][;margin=N][;base64],<data>`, e.g.
+`<img src="qr:,https://example.com/pay/123" style="width: 30mm">`. Plain data is percent-decoded,
+the margin is the quiet zone in modules (4 by default), and its natural size is 4 px a module. It
+never reaches `options.fetch`; a malformed one throws `std::invalid_argument` from
+`createFromString` naming the image.
+
 With `options.builtin_fonts`, text is in PDF's built-in fonts: CSS families map to Helvetica
 (Arial, `sans-serif`), Times (Times New Roman, `serif`) or Courier (Courier New, `monospace`), and
 are measured with Adobe's metrics; draw on an `sc::pdf` with `builtin_fonts(true)`, which writes

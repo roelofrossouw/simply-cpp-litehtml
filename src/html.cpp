@@ -27,6 +27,7 @@ namespace sc::web {
                 // mode (litehtml always gives them "medium", as browsers do only in quirks mode).
                 static const std::string defaults = std::string{litehtml::master_css} + "\ntable { font-size: inherit; }\n";
                 document = litehtml::document::createFromString(litehtml::estring{std::string{text}, litehtml::encoding::utf_8}, &host, defaults, css);
+                if (!host.problem().empty()) throw std::invalid_argument(host.problem());
             }
         };
     }
@@ -121,6 +122,7 @@ namespace sc::web {
         data_->host.layout_width = width;
         data_->document->media_changed(); // @media rules see the new width
         data_->fitted = data_->document->render(detail::px(width));
+        if (!data_->host.problem().empty()) throw std::invalid_argument(data_->host.problem());
         data_->laid_out = true;
         return height();
     }

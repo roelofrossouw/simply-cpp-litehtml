@@ -5,6 +5,7 @@
 #include "sc_test.h"
 
 #include <base64.h>
+#include <sc_qrencode.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -142,6 +143,41 @@ int main() {
         page.layout(300);
         CHECK_EQ(page.select("img")[0].box().width(), 40.0);
         CHECK_LT(std::size_t{0}, count<sc::drawable>(page.drawing()));
+    }
+
+    SECTION("qr: images: a QR code from the URI's data, drawn as shapes, shaped as a data: URI");
+    {
+        const std::string link = "https://example.com/invoice/123";
+        const int modules = sc::qr::code{link}.size();
+        // Percent-encoded text, 4 px a module with a quiet zone of 4.
+        sc::web::html page{"<img src='qr:,https%3A%2F%2Fexample.com%2Finvoice%2F123'>"};
+        page.layout(600);
+        CHECK_EQ(page.select("img")[0].box().width(), 4.0 * (modules + 8));
+        CHECK_LT(std::size_t{0}, count<sc::drawable>(page.drawing())); // shapes, not a bitmap
+        CHECK_EQ(count<sc::figure>(page.drawing()), std::size_t{0});
+        // Base64, settings, the size CSS gives it, no comma at all; and a custom fetch doesn't stop it.
+        sc::web::html::options offline;
+        offline.fetch = [](const std::string &) -> std::optional<std::string> { return std::nullopt; };
+        sc::web::html more{"<img src='qr:;base64," + sc::base64::encode(link) + "'>"
+                           "<img src='qr:margin=0;correction=h,https%3A%2F%2Fexample.com%2Finvoice%2F123'>"
+                           "<img src='qr:,hello' style='width: 25mm'><img src='qr:hello'>", offline};
+        more.layout(600);
+        const auto images = more.select("img");
+        CHECK_EQ(images[0].box().width(), 4.0 * (modules + 8));
+        CHECK_EQ(images[1].box().width(), 4.0 * sc::qr::code(link, sc::qr::correction::high).size()); // no quiet zone
+        CHECK_NEAR(images[2].box().width(), 25 * 96 / 25.4, 0.01);
+        CHECK_EQ(images[3].box().width(), 4.0 * (sc::qr::code{"hello"}.size() + 8));
+        // Mistakes are errors naming the image, not a document with a code missing.
+        CHECK_THROWS_AS(sc::web::html("<img src='qr:colour=red,x'>"), std::invalid_argument);
+        CHECK_THROWS_AS(sc::web::html("<img src='qr:correction=Z,x'>"), std::invalid_argument);
+        CHECK_THROWS_AS(sc::web::html("<img src='qr:margin=-1,x'>"), std::invalid_argument);
+        CHECK_THROWS_AS(sc::web::html("<img src='qr:,'>"), std::invalid_argument);
+        CHECK_THROWS_AS(sc::web::html("<img src='qr:," + std::string(3000, '7') + std::string(3000, 'x') + "'>"), std::invalid_argument);
+        try {
+            sc::web::html bad{"<p>Text</p><img src='qr:colour=red,x'>"};
+        } catch (const std::invalid_argument &problem) {
+            CHECK(std::string{problem.what()}.find("qr:colour=red,x: unknown setting 'colour=red'") != std::string::npos);
+        }
     }
 
     SECTION("Stylesheets: the options' CSS, and one fetched");
