@@ -13,7 +13,7 @@ find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.20.0)
 # sc::canvas, fonts, bitmaps and drawings: what a page is drawn with.
 find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 6.3.0)
 # qr: images: a QR code made from the URI's data (sc-core and zlib underneath).
-find_or_install_package(sc-qrencode simply-cpp-qrencode-dev simply-cpp-qrencode 1.3.0)
+find_or_install_package(sc-qrencode simply-cpp-qrencode-dev simply-cpp-qrencode 1.3.1)
 
 set(SOURCE_OBJECTS)
 set(SOURCE_LIBRARIES)
@@ -57,4 +57,4 @@ add_sc_example(sc-litehtml-demo)
 
 # sc-graphics' code in this library falls back to an emoji font, which its package brings.
 package_sc_module(DEPENDS fonts-noto-color-emoji
-        DEV_DEPENDS "simply-cpp-dev (>= 1.20.0~)" "simply-cpp-graphics-dev (>= 6.3.0~)" "simply-cpp-qrencode-dev (>= 1.3.0~)")
+        DEV_DEPENDS "simply-cpp-dev (>= 1.20.0~)" "simply-cpp-graphics-dev (>= 6.3.0~)" "simply-cpp-qrencode-dev (>= 1.3.1~)")
