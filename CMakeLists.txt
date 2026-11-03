@@ -8,8 +8,10 @@ option(SC_LITEHTML_BUILD_TESTS "Build simply-cpp-litehtml tests" ${PROJECT_IS_TO
 get_sc_version()
 message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 
-# sc::rest fetches what a page links to over HTTP.
+# The rest of sc-core.
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.20.0)
+# sc::rest fetches what a page links to over HTTP (sc-core's until 2.0.0).
+find_or_install_package(sc-http simply-cpp-http-dev simply-cpp-http 1.0.3)
 # sc::canvas, fonts, bitmaps and drawings: what a page is drawn with.
 find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 6.3.0)
 # qr: images: a QR code made from the URI's data (sc-core and zlib underneath).
@@ -38,8 +40,8 @@ list(APPEND SOURCE_OBJECTS $<TARGET_OBJECTS:sc-litehtml-engine>)
 add_sc_object(html
         SOURCES src/container.cpp src/container.h
         INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src ${LITEHTML_INCLUDE_DIRS}
-        LINK_LIBRARIES sc::sc-core sc::sc-graphics sc::sc-qrencode
-        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics sc::sc-qrencode)
+        LINK_LIBRARIES sc::sc-core sc::sc-http-shared sc::sc-graphics sc::sc-qrencode
+        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-http-shared sc::sc-graphics sc::sc-qrencode)
 
 add_sc_libraries(DESCRIPTION "simply-cpp-litehtml")
 
@@ -56,5 +58,5 @@ endif ()
 add_sc_example(sc-litehtml-demo)
 
 # sc-graphics' code in this library falls back to an emoji font, which its package brings.
-package_sc_module(DEPENDS fonts-noto-color-emoji
-        DEV_DEPENDS "simply-cpp-dev (>= 1.20.0~)" "simply-cpp-graphics-dev (>= 6.3.0~)" "simply-cpp-qrencode-dev (>= 1.3.1~)")
+package_sc_module(DEPENDS fonts-noto-color-emoji "simply-cpp-http (>= 1.0.3~)"
+        DEV_DEPENDS "simply-cpp-dev (>= 1.20.0~)" "simply-cpp-http-dev (>= 1.0.3~)" "simply-cpp-graphics-dev (>= 6.3.0~)" "simply-cpp-qrencode-dev (>= 1.3.1~)")

@@ -3,6 +3,8 @@
 include("${CMAKE_CURRENT_LIST_DIR}/SimplyCppFunctions.cmake")
 
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.20.0)
+# sc::rest, sc-core's until 2.0.0.
+find_or_install_package(sc-http simply-cpp-http-dev simply-cpp-http 1.0.3)
 # html.h's sc::canvas, sc::font and sc::drawing.
 find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 6.3.0)
 find_or_install_package(sc-qrencode simply-cpp-qrencode-dev simply-cpp-qrencode 1.3.0)
