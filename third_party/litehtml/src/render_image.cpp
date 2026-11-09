@@ -155,6 +155,67 @@ void litehtml::render_item_image::calc_intrinsic_size()
 
     src_el()->get_content_size(sz, 0_px);
 
-    m_intrinsic_min_size.width = m_intrinsic_max_size.width = sz.width;
-    m_intrinsic_min_size.height = m_intrinsic_max_size.height = sz.height;
+    // The size it's drawn at, as _render() works it out, from what doesn't depend on the containing
+    // block: a width or height in fixed units, and max-width and max-height, keeping the image's
+    // proportions. Its natural size alone made a table column as wide as the natural width of an
+    // image shown smaller (a wide logo with max-height: 17mm), so a cell sized for it pushed the
+    // image off the page.
+    document::ptr doc   = src_el()->get_document();
+    const auto&   fm    = css().get_font_metrics();
+    auto          fixed = [](const css_length& length) {
+        return !length.is_predefined() && length.units() != css_units_percentage;
+    };
+    pixel_t    width     = sz.width;
+    pixel_t    height    = sz.height;
+    const bool has_width = fixed(css().get_width());
+    const bool has_height = fixed(css().get_height());
+    if(has_width)
+    {
+        width = doc->to_pixels(css().get_width(), fm, 0_px);
+    }
+    if(has_height)
+    {
+        height = doc->to_pixels(css().get_height(), fm, 0_px);
+    }
+    if(has_width && !has_height)
+    {
+        height = sz.width != 0_px ? width * sz.height / sz.width : sz.height;
+    } else if(has_height && !has_width)
+    {
+        width = sz.height != 0_px ? height * sz.width / sz.height : sz.width;
+    }
+    if(!has_width && fixed(css().get_max_width()))
+    {
+        const pixel_t max_width = doc->to_pixels(css().get_max_width(), fm, 0_px);
+        if(width > max_width)
+        {
+            width = max_width;
+            if(!has_height && sz.width != 0_px)
+            {
+                height = width * sz.height / sz.width;
+            }
+        }
+    }
+    if(!has_height && fixed(css().get_max_height()))
+    {
+        const pixel_t max_height = doc->to_pixels(css().get_max_height(), fm, 0_px);
+        if(height > max_height)
+        {
+            height = max_height;
+            if(!has_width && sz.height != 0_px)
+            {
+                width = height * sz.width / sz.height;
+            }
+        }
+    }
+
+    m_intrinsic_min_size.width = m_intrinsic_max_size.width = width;
+    m_intrinsic_min_size.height = m_intrinsic_max_size.height = height;
+
+    // A percentage width or max-width lets it shrink with its container, as browsers do (a
+    // "compressible" replaced element, CSS Sizing 3, 5.2.2): it asks for no width of its own.
+    if(!has_width && !css().get_max_width().is_predefined() && css().get_max_width().units() == css_units_percentage)
+    {
+        m_intrinsic_min_size.width = 0_px;
+    }
 }

@@ -95,6 +95,27 @@ int main() {
         CHECK_EQ(images[1].box().height(), 20.0);
     }
 
+    SECTION("A wide image shown smaller in a table cell: the column is sized for it as shown");
+    {
+        // 1200 by 180, shown 30 high (200 wide) at the right of a 300 wide table: it was placed as if
+        // 1200 wide, past the table's right edge.
+        const std::string wide = "<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='180'><rect width='1200' height='180'/></svg>";
+        const std::string src = "data:image/svg+xml;base64," + sc::base64::encode(wide);
+        for (const std::string style: {"max-height: 30px", "height: 30px"}) {
+            sc::web::html page{"<table style='width: 100%'><tr><td>a</td><td style='text-align: right'><img src='" + src + "' style='" + style + "'></td></tr></table>"};
+            page.layout(300);
+            const auto box = page.select("img")[0].box();
+            CHECK_EQ(box.height(), 30.0);
+            CHECK_EQ(box.width(), 200.0);
+            CHECK_LT(box.right(), 300.5);
+            CHECK_LT(80.0, box.left());
+        }
+        // A percentage max-width lets it shrink to the cell: it fits a 150 wide table.
+        sc::web::html narrow{"<table style='width: 100%'><tr><td><img src='" + src + "' style='max-width: 100%'></td></tr></table>"};
+        narrow.layout(150);
+        CHECK_LT(narrow.select("img")[0].box().right(), 150.5);
+    }
+
     SECTION("An image cache: documents sharing it fetch an image once and draw the same bitmap");
     {
         int fetched = 0;
