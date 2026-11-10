@@ -619,10 +619,13 @@ namespace sc::web::detail {
         std::array<double, 4> widths{};
         for (int i = 0; i < 4; ++i) widths[i] = shows(*sides[i]) ? value(sides[i]->width) : 0;
 
-        // One colour and style all round, solid or double: the ring itself.
+        // All four sides in one colour and style, solid or double: the ring itself. With a side
+        // missing, the ring's inner edge would lie on its outer one there, a band of no width that
+        // some viewers (Adobe Reader) still paint as a hairline, so those go side by side instead,
+        // and a side without a border draws nothing.
         const auto &first = *std::ranges::find_if(sides, [](const auto *side) { return shows(*side); });
         const bool uniform = std::ranges::all_of(sides, [&](const auto *side) {
-            return !shows(*side) || (side->color == first->color && side->style == first->style);
+            return shows(*side) && side->color == first->color && side->style == first->style;
         });
         const bool solid = first->style == litehtml::border_style_solid || first->style == litehtml::border_style_groove ||
                            first->style == litehtml::border_style_ridge;
@@ -638,7 +641,8 @@ namespace sc::web::detail {
             return;
         }
 
-        // Otherwise side by side, each within the ring.
+        // Otherwise side by side, each a band of its own (a rectangle, or a trapezoid where it
+        // meets another side's border), within the ring when the corners are round.
         clip_scope ring_clip{canvas, rounded(corners) ? ring(box, corners, widths, 0, 1) : path{}};
         for (int i = 0; i < 4; ++i) {
             const auto &side = *sides[i];
