@@ -3,12 +3,12 @@
 // litehtml's document_container on an sc::canvas: fonts through sc::font, text, backgrounds (colours,
 // linear gradients, images), borders, list markers and clips as canvas calls. Not installed.
 
-#include "html.h"
+#include <sc/litehtml/html.h>
 
 #include <litehtml.h>
 
-#include <bitmap.h>
-#include <standard_font.h>
+#include <sc/graphics/bitmap.h>
+#include <sc/graphics/standard_font.h>
 
 #include <map>
 #include <optional>

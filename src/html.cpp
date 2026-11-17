@@ -1,11 +1,11 @@
-#include "html.h"
+#include <sc/litehtml/html.h>
 
 #include "container.h"
 
 #include <litehtml/render_item.h>
 
-#include <base64.h>
-#include <rest.h>
+#include <sc/core/base64.h>
+#include <sc/http/rest.h>
 
 #include <algorithm>
 #include <cctype>

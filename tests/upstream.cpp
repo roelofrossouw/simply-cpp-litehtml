@@ -15,7 +15,7 @@
 //   SC_UPSTREAM_ONLY      only the pages whose path contains this
 #include "upstream/raster.h"
 
-#include <html.h>
+#include <sc/litehtml/html.h>
 
 #include <algorithm>
 #include <atomic>

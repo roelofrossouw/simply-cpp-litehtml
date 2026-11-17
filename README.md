@@ -27,7 +27,7 @@ target_link_libraries(myapp PRIVATE sc::sc-litehtml-shared)
 ```
 
 ```cpp
-#include <html.h>
+#include <sc/litehtml/html.h>
 
 sc::web::html::options settings;
 settings.css = "body { font-family: sans-serif }";        // after the defaults, before the page's own

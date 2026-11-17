@@ -1,10 +1,10 @@
 #include "container.h"
 
-#include <base64.h>
-#include <core.h>
-#include <paint.h>
-#include <path.h>
-#include <sc_qrencode.h>
+#include <sc/core/base64.h>
+#include <sc/core/core.h>
+#include <sc/graphics/paint.h>
+#include <sc/core/path.h>
+#include <sc/qrencode/sc_qrencode.h>
 
 #include <algorithm>
 #include <array>

@@ -6,10 +6,10 @@
 #include <iostream>
 #include <string>
 
-#include <params.h>
-#include <sc.h>
+#include <sc/core/params.h>
+#include <sc/core/sc.h>
 
-#include <html.h>
+#include <sc/litehtml/html.h>
 
 int main(int argc, char **argv) {
     const sc::params args{argc, argv, {

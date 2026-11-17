@@ -8,8 +8,8 @@
 
 #include "png.h"
 
-#include <drawing.h>
-#include <font.h>
+#include <sc/graphics/drawing.h>
+#include <sc/graphics/font.h>
 
 #include <algorithm>
 #include <cmath>

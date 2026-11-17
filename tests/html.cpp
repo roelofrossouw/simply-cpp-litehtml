@@ -1,11 +1,11 @@
 // sc::web::html: layout, what it draws (recorded on an sc::drawing), elements found by selector,
 // images from data: URIs, and how URLs resolve.
-#include <html.h>
+#include <sc/litehtml/html.h>
 
 #include "sc_test.h"
 
-#include <base64.h>
-#include <sc_qrencode.h>
+#include <sc/core/base64.h>
+#include <sc/qrencode/sc_qrencode.h>
 
 #include <algorithm>
 #include <filesystem>

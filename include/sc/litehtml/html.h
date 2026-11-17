@@ -1,10 +1,10 @@
 #pragma once
 
-#include <canvas.h>
-#include <drawing.h>
-#include <font.h>
-#include <rect.h>
-#include <transform.h>
+#include <sc/graphics/canvas.h>
+#include <sc/graphics/drawing.h>
+#include <sc/graphics/font.h>
+#include <sc/core/rect.h>
+#include <sc/core/transform.h>
 
 #include <functional>
 #include <memory>
