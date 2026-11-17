@@ -13,7 +13,7 @@
 #include <string_view>
 #include <vector>
 
-namespace sc::web {
+namespace sc::litehtml {
     namespace detail {
         struct html_data;
         struct picture_store;
@@ -24,9 +24,9 @@ namespace sc::web {
     /// every URL is fetched and decoded once, and drawn as the very same bitmap, which an sc::pdflite::writer
     /// then holds once. For a header or footer laid out again on every page.
     ///
-    ///     sc::web::html::options options;
-    ///     options.images = sc::web::image_cache{};
-    ///     for (...) sc::web::html footer{footer_html, options};   // the logo read once
+    ///     sc::litehtml::html::options options;
+    ///     options.images = sc::litehtml::image_cache{};
+    ///     for (...) sc::litehtml::html footer{footer_html, options};   // the logo read once
     ///
     /// By resolved URL: the documents should fetch alike.
     class image_cache {
@@ -74,7 +74,7 @@ namespace sc::web {
     /// is 4/3 of one), from the document's top-left corner, y down. Fonts are found and measured
     /// through sc::font (fontconfig), as sc-pdflite and sc-mupdf draw them.
     ///
-    ///     sc::web::html page{"<h1>Invoice</h1><p>Due in <b>30</b> days.</p>"};
+    ///     sc::litehtml::html page{"<h1>Invoice</h1><p>Due in <b>30</b> days.</p>"};
     ///     page.layout(800);                                  // 800 px wide; height() is now known
     ///     page.draw(pdf, sc::transform::scale(0.75));        // px to points, on page 1
     ///
@@ -100,7 +100,7 @@ namespace sc::web {
 
         private:
             friend class html;
-            std::shared_ptr<const void> node_; // litehtml::element, keeping the document alive
+            std::shared_ptr<const void> node_; // ::litehtml::element, keeping the document alive
         };
 
         /// Parses the HTML (a whole page or a fragment); it's laid out on the first layout().

@@ -13,9 +13,10 @@ it to write HTML as pages of a PDF.
 
 **sc-litehtml is Apache-2.0.** litehtml (BSD-3-Clause) and the gumbo HTML
 parser it ships (Apache-2.0) are vendored in `third_party/litehtml`, a git
-subtree of [litehtml/litehtml](https://github.com/litehtml/litehtml) (master),
-and compiled into this module's libraries. Their headers stay out of the installed
-ones: `sc::web::html` is all a program sees, so another engine can take
+subtree of [litehtml/litehtml](https://github.com/litehtml/litehtml) (master;
+only its engine: upstream's containers/, doc/, support/ and Visual Studio files
+are removed, so drop them again after a subtree pull), and compiled into this module's libraries. Their headers stay out of the installed
+ones: `sc::litehtml::html` is all a program sees, so another engine can take
 litehtml's place behind it.
 
 ## Usage
@@ -29,10 +30,10 @@ target_link_libraries(myapp PRIVATE sc::sc-litehtml-shared)
 ```cpp
 #include <sc/litehtml/html.h>
 
-sc::web::html::options settings;
+sc::litehtml::html::options settings;
 settings.css = "body { font-family: sans-serif }";        // after the defaults, before the page's own
 settings.base_url = "/srv/site/index.html";               // relative links: a folder, file or http(s) URL
-sc::web::html page{"<h1>Invoice</h1><p>Due in <b>30</b> days.</p>", settings};
+sc::litehtml::html page{"<h1>Invoice</h1><p>Due in <b>30</b> days.</p>", settings};
 
 page.layout(800);                                         // 800 CSS px wide; returns the height
 page.draw(pdf, sc::transform::scale(0.75));               // px to points, on any canvas
@@ -48,7 +49,7 @@ document's top-left corner, y down. Fonts are found and measured through
 takes its first installed family, else its generic one. Stylesheets
 (`<link>`, `@import`) and images come through `options.fetch`, by default from
 data: URIs, local files and http(s) (sc-core's `sc::rest`). Documents given the
-same `options.images` (an `sc::web::image_cache`) read each image once and draw
+same `options.images` (an `sc::litehtml::image_cache`) read each image once and draw
 the same bitmap, which a PDF then holds once: for a header laid out on every page.
 
 An image whose URL starts with `qr:` is a QR code of what follows (sc-qrencode), drawn as vector
@@ -80,12 +81,12 @@ selector:
 
 <!-- sc-example: examples/sc-litehtml-demo.cpp -->
 ```cpp
-sc::web::html::options settings;
+sc::litehtml::html::options settings;
 settings.css = "body { font-family: sans-serif; margin: 16px }";
 std::string text;
 if (file) {
     const std::filesystem::path path = file->get<std::string>();
-    text = sc::web::html::default_fetch(path.string()).value_or("");
+    text = sc::litehtml::html::default_fetch(path.string()).value_or("");
     settings.base_url = path.string(); // its images and stylesheets are next to it
 } else {
     text = R"html(<h1 style="color: #2a6f97">An invoice</h1>
@@ -98,7 +99,7 @@ if (file) {
               <ul><li>Bank transfer</li><li>Card</li></ul>
               <div style="border: 3px double #2a6f97; border-radius: 12px; padding: 8px; background: linear-gradient(to right, #fff, #e8f1f8)">Total: <b>200.00</b></div>)html";
 }
-sc::web::html page{text, settings};
+sc::litehtml::html page{text, settings};
 SC_SHOW(page.layout(args.as<double>("width")));       // the height, in px
 auto picture = page.drawing();                          // what it draws, as data
 SC_SHOW(picture.size());

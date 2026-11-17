@@ -1,4 +1,4 @@
-// Lays out HTML with sc::web::html (litehtml), draws it on an sc::drawing and saves that as SVG,
+// Lays out HTML with sc::litehtml::html (litehtml), draws it on an sc::drawing and saves that as SVG,
 // then shows what it found by selector. With no FILE it lays out a small page of its own; --help
 // lists the options.
 
@@ -14,7 +14,7 @@
 int main(int argc, char **argv) {
     const sc::params args{argc, argv, {
         {"name", "sc-litehtml-demo"},
-        {"description", "Lays out an HTML file with sc::web::html (litehtml underneath) and saves what it draws as SVG. "
+        {"description", "Lays out an HTML file with sc::litehtml::html (litehtml underneath) and saves what it draws as SVG. "
                         "Without FILE it lays out a small invoice of its own, then lists the links and headings it found by "
                         "CSS selector.\nMore on the wiki: https://github.com/roelofrossouw/simply-cpp/wiki/HTML-to-PDF"},
         {"options", {
@@ -28,12 +28,12 @@ int main(int argc, char **argv) {
         const auto *file = args.lookup("file");
 
         // [readme]
-        sc::web::html::options settings;
+        sc::litehtml::html::options settings;
         settings.css = "body { font-family: sans-serif; margin: 16px }";
         std::string text;
         if (file) {
             const std::filesystem::path path = file->get<std::string>();
-            text = sc::web::html::default_fetch(path.string()).value_or("");
+            text = sc::litehtml::html::default_fetch(path.string()).value_or("");
             settings.base_url = path.string(); // its images and stylesheets are next to it
         } else {
             text = R"html(<h1 style="color: #2a6f97">An invoice</h1>
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
                       <ul><li>Bank transfer</li><li>Card</li></ul>
                       <div style="border: 3px double #2a6f97; border-radius: 12px; padding: 8px; background: linear-gradient(to right, #fff, #e8f1f8)">Total: <b>200.00</b></div>)html";
         }
-        sc::web::html page{text, settings};
+        sc::litehtml::html page{text, settings};
         SC_SHOW(page.layout(args.as<double>("width")));       // the height, in px
         auto picture = page.drawing();                          // what it draws, as data
         SC_SHOW(picture.size());

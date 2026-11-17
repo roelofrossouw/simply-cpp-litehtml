@@ -13,11 +13,11 @@
 #include <fstream>
 #include <iterator>
 
-namespace sc::web {
+namespace sc::litehtml {
     namespace detail {
         struct html_data {
             container host;
-            litehtml::document::ptr document;
+            ::litehtml::document::ptr document;
             bool laid_out = false;
             double fitted = 0; // what render() found the content needs
 
@@ -25,8 +25,8 @@ namespace sc::web {
                 const auto &css = host.settings().css;
                 // litehtml's own defaults, but tables inherit their font size, as browsers do in standards
                 // mode (litehtml always gives them "medium", as browsers do only in quirks mode).
-                static const std::string defaults = std::string{litehtml::master_css} + "\ntable { font-size: inherit; }\n";
-                document = litehtml::document::createFromString(litehtml::estring{std::string{text}, litehtml::encoding::utf_8}, &host, defaults, css);
+                static const std::string defaults = std::string{::litehtml::master_css} + "\ntable { font-size: inherit; }\n";
+                document = ::litehtml::document::createFromString(::litehtml::estring{std::string{text}, ::litehtml::encoding::utf_8}, &host, defaults, css);
                 if (!host.problem().empty()) throw std::invalid_argument(host.problem());
             }
         };
@@ -60,7 +60,7 @@ namespace sc::web {
             return out;
         }
 
-        rect border_box(const litehtml::element::ptr &element) {
+        rect border_box(const ::litehtml::element::ptr &element) {
             const auto item = element->get_render_item();
             const auto placed = element->get_placement();
             rect box{placed.x, placed.y, placed.width, placed.height};
@@ -83,7 +83,7 @@ namespace sc::web {
             return covered;
         }
 
-        const litehtml::element &node_of(const std::shared_ptr<const void> &node) { return *static_cast<const litehtml::element *>(node.get()); }
+        const ::litehtml::element &node_of(const std::shared_ptr<const void> &node) { return *static_cast<const ::litehtml::element *>(node.get()); }
     }
 
     image_cache::image_cache() : store_(std::make_shared<detail::picture_store>()) {
@@ -107,7 +107,7 @@ namespace sc::web {
     }
 
     rect html::element::box() const {
-        auto *node = const_cast<litehtml::element *>(&node_of(node_));
+        auto *node = const_cast<::litehtml::element *>(&node_of(node_));
         return border_box(node->shared_from_this());
     }
 
@@ -143,11 +143,11 @@ namespace sc::web {
         if (!data_->laid_out) layout(800);
         auto &host = data_->host;
         host.target = &canvas;
-        litehtml::position limit;
+        ::litehtml::position limit;
         if (clip) limit = {detail::px(clip->left()), detail::px(clip->top()),
                            detail::px(clip->width()), detail::px(clip->height())};
         try {
-            data_->document->draw(reinterpret_cast<litehtml::uint_ptr>(&canvas), 0, 0, clip ? &limit : nullptr);
+            data_->document->draw(reinterpret_cast<::litehtml::uint_ptr>(&canvas), 0, 0, clip ? &limit : nullptr);
         } catch (...) {
             host.target = nullptr;
             throw;
@@ -165,13 +165,13 @@ namespace sc::web {
     namespace {
         // A selector list ("h1, h2.title") as its selectors, split at the commas outside brackets,
         // parentheses and quotes; one that doesn't parse is left out.
-        std::vector<litehtml::css_selector> selectors_of(const std::string_view list, const litehtml::document_mode mode) {
-            std::vector<litehtml::css_selector> out;
+        std::vector<::litehtml::css_selector> selectors_of(const std::string_view list, const ::litehtml::document_mode mode) {
+            std::vector<::litehtml::css_selector> out;
             int depth = 0;
             char quote = 0;
             std::size_t start = 0;
             const auto take = [&](const std::size_t end) {
-                litehtml::css_selector selector;
+                ::litehtml::css_selector selector;
                 if (selector.parse(std::string{list.substr(start, end - start)}, mode)) out.push_back(std::move(selector));
                 start = end + 1;
             };
@@ -193,9 +193,9 @@ namespace sc::web {
             return out;
         }
 
-        void collect(const litehtml::element::ptr &node, std::vector<litehtml::css_selector> &selectors, std::vector<litehtml::element::ptr> &found) {
+        void collect(const ::litehtml::element::ptr &node, std::vector<::litehtml::css_selector> &selectors, std::vector<::litehtml::element::ptr> &found) {
             for (auto &selector: selectors) {
-                if (node->select(selector, true) != litehtml::select_no_match) {
+                if (node->select(selector, true) != ::litehtml::select_no_match) {
                     found.push_back(node);
                     break;
                 }
@@ -209,7 +209,7 @@ namespace sc::web {
         const auto root = data_->document->root();
         if (!root) return found;
         auto selectors = selectors_of(selector, data_->document->mode());
-        std::vector<litehtml::element::ptr> matched;
+        std::vector<::litehtml::element::ptr> matched;
         collect(root, selectors, matched); // in document order, each once
         for (const auto &node: matched) {
             element each;

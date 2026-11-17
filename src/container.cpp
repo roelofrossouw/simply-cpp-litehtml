@@ -17,16 +17,16 @@
 #include <system_error>
 #include <utility>
 
-namespace sc::web::detail {
+namespace sc::litehtml::detail {
     namespace {
-        sc::color colour_of(const litehtml::web_color &c) { return {c.red / 255.0, c.green / 255.0, c.blue / 255.0, c.alpha / 255.0}; }
+        sc::color colour_of(const ::litehtml::web_color &c) { return {c.red / 255.0, c.green / 255.0, c.blue / 255.0, c.alpha / 255.0}; }
 
-        rect rect_of(const litehtml::position &p) { return {p.x, p.y, p.width, p.height}; }
+        rect rect_of(const ::litehtml::position &p) { return {p.x, p.y, p.width, p.height}; }
 
         // The horizontal and vertical radius of each corner, from the top left, clockwise.
         using radii = std::array<std::pair<double, double>, 4>;
 
-        radii radii_of(const litehtml::border_radiuses &r) {
+        radii radii_of(const ::litehtml::border_radiuses &r) {
             return {{{r.top_left_x, r.top_left_y}, {r.top_right_x, r.top_right_y}, {r.bottom_right_x, r.bottom_right_y}, {r.bottom_left_x, r.bottom_left_y}}};
         }
 
@@ -177,18 +177,18 @@ namespace sc::web::detail {
         };
 
         // Where a background shows: its clip box within its border box.
-        rect visible_of(const litehtml::background_layer &layer) { return rect_of(layer.clip_box).intersect(rect_of(layer.border_box)); }
+        rect visible_of(const ::litehtml::background_layer &layer) { return rect_of(layer.clip_box).intersect(rect_of(layer.border_box)); }
 
         bool inside(const rect &box, const rect &area) {
             return box.left() >= area.left() - 1e-6 && box.top() >= area.top() - 1e-6 && box.right() <= area.right() + 1e-6 && box.bottom() <= area.bottom() + 1e-6;
         }
 
         // Where a background's tiles go: its origin box, repeated as it says, those that show.
-        std::vector<rect> tiles(const litehtml::background_layer &layer) {
+        std::vector<rect> tiles(const ::litehtml::background_layer &layer) {
             const rect origin = rect_of(layer.origin_box), visible = visible_of(layer);
             if (origin.width() <= 0 || origin.height() <= 0 || visible.width() <= 0 || visible.height() <= 0) return {};
-            const bool across = layer.repeat == litehtml::background_repeat_repeat || layer.repeat == litehtml::background_repeat_repeat_x;
-            const bool down = layer.repeat == litehtml::background_repeat_repeat || layer.repeat == litehtml::background_repeat_repeat_y;
+            const bool across = layer.repeat == ::litehtml::background_repeat_repeat || layer.repeat == ::litehtml::background_repeat_repeat_x;
+            const bool down = layer.repeat == ::litehtml::background_repeat_repeat || layer.repeat == ::litehtml::background_repeat_repeat_y;
             double x0 = origin.left(), y0 = origin.top(), x1 = origin.right(), y1 = origin.bottom();
             if (across) {
                 x0 -= std::ceil((x0 - visible.left()) / origin.width() - 1e-9) * origin.width();
@@ -210,7 +210,7 @@ namespace sc::web::detail {
 
         // The one clip a background needs: its rounded border box, or else where it shows when a
         // tile reaches past it.
-        path background_clip(const litehtml::background_layer &layer, const std::vector<rect> &placed) {
+        path background_clip(const ::litehtml::background_layer &layer, const std::vector<rect> &placed) {
             const radii corners = radii_of(layer.border_radius);
             if (rounded(corners)) return box_path(rect_of(layer.border_box), corners);
             const rect visible = visible_of(layer);
@@ -243,7 +243,7 @@ namespace sc::web::detail {
             header = rest.substr(0, comma);
             rest = rest.substr(comma + 1);
         }
-        auto level = sc::qr::correction::medium;
+        auto level = sc::qrencode::correction::medium;
         int margin = 4;
         bool base64 = false;
         std::size_t start = 0;
@@ -257,10 +257,10 @@ namespace sc::web::detail {
             if (setting == "base64") {
                 base64 = true;
             } else if (setting.starts_with("correction=")) {
-                static const std::map<std::string, sc::qr::correction> levels{
-                        {"l", sc::qr::correction::low},          {"low", sc::qr::correction::low},     {"m", sc::qr::correction::medium},
-                        {"medium", sc::qr::correction::medium}, {"q", sc::qr::correction::quartile}, {"quartile", sc::qr::correction::quartile},
-                        {"h", sc::qr::correction::high},        {"high", sc::qr::correction::high}};
+                static const std::map<std::string, sc::qrencode::correction> levels{
+                        {"l", sc::qrencode::correction::low},          {"low", sc::qrencode::correction::low},     {"m", sc::qrencode::correction::medium},
+                        {"medium", sc::qrencode::correction::medium}, {"q", sc::qrencode::correction::quartile}, {"quartile", sc::qrencode::correction::quartile},
+                        {"h", sc::qrencode::correction::high},        {"high", sc::qrencode::correction::high}};
                 const auto found = levels.find(setting.substr(11));
                 if (found == levels.end()) throw std::invalid_argument("correction is L, M, Q or H");
                 level = found->second;
@@ -288,7 +288,7 @@ namespace sc::web::detail {
             }
         }
         if (data.empty()) throw std::invalid_argument("no data to encode");
-        const auto code = data.find('\0') == std::string::npos ? sc::qr::code{data, level} : sc::qr::code::binary(data, level);
+        const auto code = data.find('\0') == std::string::npos ? sc::qrencode::code{data, level} : sc::qrencode::code::binary(data, level);
         auto drawing = sc::drawing::from_svg(code.svg(std::nullopt, margin));
         const double side = 4.0 * (code.size() + 2 * margin);
         return picture{std::nullopt, std::move(drawing), sc::size{side, side}};
@@ -318,10 +318,10 @@ namespace sc::web::detail {
     }
 
 
-    litehtml::uint_ptr container::create_font(const litehtml::font_description &description, const litehtml::document *, litehtml::font_metrics *metrics) {
+    ::litehtml::uint_ptr container::create_font(const ::litehtml::font_description &description, const ::litehtml::document *, ::litehtml::font_metrics *metrics) {
         font_entry entry;
         const auto family = settings_.builtin_fonts ? builtin_family_of(description.family) : family_of(description.family, settings_.font.family);
-        entry.font = sc::font{family, description.size, description.weight, description.style == litehtml::font_style_italic};
+        entry.font = sc::font{family, description.size, description.weight, description.style == ::litehtml::font_style_italic};
         if (settings_.builtin_fonts) entry.standard = sc::standard_font::of(entry.font);
         entry.decoration = description.decoration_line;
         entry.decoration_colour = description.decoration_color;
@@ -352,7 +352,7 @@ namespace sc::web::detail {
             metrics->super_shift = px(size / 3);
         }
         fonts_.emplace_back(std::move(entry));
-        return static_cast<litehtml::uint_ptr>(fonts_.size());
+        return static_cast<::litehtml::uint_ptr>(fonts_.size());
     }
 
     // A built-in font's width: Adobe's for what Windows-1252 has, the installed font's for the rest
@@ -373,11 +373,11 @@ namespace sc::web::detail {
         return width;
     }
 
-    void container::delete_font(const litehtml::uint_ptr font) {
+    void container::delete_font(const ::litehtml::uint_ptr font) {
         if (font > 0 && font <= fonts_.size()) fonts_[font - 1].reset();
     }
 
-    litehtml::pixel_t container::text_width(const char *text, const litehtml::uint_ptr font) {
+    ::litehtml::pixel_t container::text_width(const char *text, const ::litehtml::uint_ptr font) {
         if (font == 0 || font > fonts_.size() || !fonts_[font - 1] || !text || !*text) return 0;
         const auto &entry = *fonts_[font - 1];
         if (entry.standard) return px(standard_width(entry, text));
@@ -385,39 +385,39 @@ namespace sc::web::detail {
         return px(measured > 0 ? measured : std::char_traits<char>::length(text) * entry.font.size * 0.5);
     }
 
-    void container::draw_text(const litehtml::uint_ptr hdc, const char *text, const litehtml::uint_ptr font, const litehtml::web_color colour,
-                              const litehtml::position &pos) {
+    void container::draw_text(const ::litehtml::uint_ptr hdc, const char *text, const ::litehtml::uint_ptr font, const ::litehtml::web_color colour,
+                              const ::litehtml::position &pos) {
         if (font == 0 || font > fonts_.size() || !fonts_[font - 1] || !text) return;
         auto &canvas = canvas_of(hdc);
         const auto &entry = *fonts_[font - 1];
         const double baseline = value(pos.y + pos.height) - entry.descent;
         canvas.draw(sc::text{text, {pos.x, baseline}, entry.font}, colour_of(colour));
-        if (entry.decoration == litehtml::text_decoration_line_none) return;
+        if (entry.decoration == ::litehtml::text_decoration_line_none) return;
         const double thickness = std::max(1.0, entry.font.size / 14);
         const double width = text_width(text, font);
-        const auto line_colour = entry.decoration_colour == litehtml::web_color::current_color ? colour : entry.decoration_colour;
+        const auto line_colour = entry.decoration_colour == ::litehtml::web_color::current_color ? colour : entry.decoration_colour;
         const auto line_at = [&](const double middle) {
             canvas.draw(rect{pos.x, middle - thickness / 2, width, thickness}, sc::appearance::filled(colour_of(line_colour)));
         };
-        if (entry.decoration & litehtml::text_decoration_line_underline) line_at(baseline + std::max(thickness, entry.descent / 2));
-        if (entry.decoration & litehtml::text_decoration_line_line_through) line_at(baseline - entry.x_height / 2);
-        if (entry.decoration & litehtml::text_decoration_line_overline) line_at(baseline - entry.ascent);
+        if (entry.decoration & ::litehtml::text_decoration_line_underline) line_at(baseline + std::max(thickness, entry.descent / 2));
+        if (entry.decoration & ::litehtml::text_decoration_line_line_through) line_at(baseline - entry.x_height / 2);
+        if (entry.decoration & ::litehtml::text_decoration_line_overline) line_at(baseline - entry.ascent);
     }
 
-    litehtml::pixel_t container::pt_to_px(const float pt) const { return pt * 96.0f / 72.0f; }
+    ::litehtml::pixel_t container::pt_to_px(const float pt) const { return pt * 96.0f / 72.0f; }
 
-    litehtml::pixel_t container::get_default_font_size() const { return px(settings_.font.size); }
+    ::litehtml::pixel_t container::get_default_font_size() const { return px(settings_.font.size); }
 
     const char *container::get_default_font_name() const { return settings_.font.family.c_str(); }
 
-    void container::transform_text(std::string &text, const litehtml::text_transform tt) {
+    void container::transform_text(std::string &text, const ::litehtml::text_transform tt) {
         // ASCII letters only: others stay as written.
         bool start = true;
         for (auto &c: text) {
             const auto u = static_cast<unsigned char>(c);
-            if (tt == litehtml::text_transform_uppercase) c = static_cast<char>(std::toupper(u));
-            else if (tt == litehtml::text_transform_lowercase) c = static_cast<char>(std::tolower(u));
-            else if (tt == litehtml::text_transform_capitalize && start) c = static_cast<char>(std::toupper(u));
+            if (tt == ::litehtml::text_transform_uppercase) c = static_cast<char>(std::toupper(u));
+            else if (tt == ::litehtml::text_transform_lowercase) c = static_cast<char>(std::tolower(u));
+            else if (tt == ::litehtml::text_transform_capitalize && start) c = static_cast<char>(std::toupper(u));
             start = std::isspace(u) != 0;
         }
     }
@@ -437,7 +437,7 @@ namespace sc::web::detail {
                 slot = qr_picture(url);
             } catch (const std::exception &failure) {
                 const auto shown = url.size() > 60 ? url.substr(0, 57) + "..." : url;
-                pictures_->problems[url] = "sc::web::html: image " + shown + ": " + failure.what();
+                pictures_->problems[url] = "sc::litehtml::html: image " + shown + ": " + failure.what();
                 if (problem_.empty()) problem_ = pictures_->problems[url];
             }
             return;
@@ -458,13 +458,13 @@ namespace sc::web::detail {
         }
     }
 
-    void container::get_image_size(const char *src, const char *baseurl, litehtml::size &size) {
+    void container::get_image_size(const char *src, const char *baseurl, ::litehtml::size &size) {
         const auto *found = find(resolved(src, baseurl));
         size.width = found ? px(found->size.width()) : px(0);
         size.height = found ? px(found->size.height()) : px(0);
     }
 
-    void container::draw_image(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer, const std::string &url, const std::string &base_url) {
+    void container::draw_image(const ::litehtml::uint_ptr hdc, const ::litehtml::background_layer &layer, const std::string &url, const std::string &base_url) {
         const auto *found = find(resolved(url.c_str(), base_url.c_str()));
         if (!found || value(layer.clip_box.width) <= 0 || value(layer.clip_box.height) <= 0) return;
         auto &canvas = canvas_of(hdc);
@@ -473,7 +473,7 @@ namespace sc::web::detail {
         for (const auto &tile: placed) draw_picture(canvas, *found, tile);
     }
 
-    void container::draw_list_marker(const litehtml::uint_ptr hdc, const litehtml::list_marker &marker) {
+    void container::draw_list_marker(const ::litehtml::uint_ptr hdc, const ::litehtml::list_marker &marker) {
         auto &canvas = canvas_of(hdc);
         const rect box = rect_of(marker.pos);
         if (!marker.image.empty()) {
@@ -486,15 +486,15 @@ namespace sc::web::detail {
         const auto colour = colour_of(marker.color);
         const sc::circle dot{box.center(), std::min(box.width(), box.height()) / 2};
         switch (marker.marker_type) {
-            case litehtml::list_style_type_disc: canvas.draw(dot, sc::appearance::filled(colour)); break;
-            case litehtml::list_style_type_circle: canvas.draw(dot, sc::stroke{colour, 1}); break;
-            case litehtml::list_style_type_square: canvas.draw(box, sc::appearance::filled(colour)); break;
+            case ::litehtml::list_style_type_disc: canvas.draw(dot, sc::appearance::filled(colour)); break;
+            case ::litehtml::list_style_type_circle: canvas.draw(dot, sc::stroke{colour, 1}); break;
+            case ::litehtml::list_style_type_square: canvas.draw(box, sc::appearance::filled(colour)); break;
             default: break; // numbers and letters are text litehtml draws itself
         }
     }
 
 
-    void container::draw_solid_fill(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer, const litehtml::web_color &colour) {
+    void container::draw_solid_fill(const ::litehtml::uint_ptr hdc, const ::litehtml::background_layer &layer, const ::litehtml::web_color &colour) {
         if (colour.alpha == 0) return;
         auto &canvas = canvas_of(hdc);
         const radii corners = radii_of(layer.border_radius);
@@ -507,8 +507,8 @@ namespace sc::web::detail {
         canvas.draw(box_path(rect_of(layer.border_box), corners), sc::appearance::filled(colour_of(colour)));
     }
 
-    void container::draw_linear_gradient(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
-                                         const litehtml::background_layer::linear_gradient &gradient) {
+    void container::draw_linear_gradient(const ::litehtml::uint_ptr hdc, const ::litehtml::background_layer &layer,
+                                         const ::litehtml::background_layer::linear_gradient &gradient) {
         if (gradient.color_points.empty()) return;
         auto &canvas = canvas_of(hdc);
         const radii corners = radii_of(layer.border_radius);
@@ -528,30 +528,30 @@ namespace sc::web::detail {
     namespace {
         // A gradient sc::canvas can't draw yet, as the colour halfway through it.
         // TODO: radial and conic gradients.
-        litehtml::web_color middle_colour(const litehtml::background_layer::gradient_base &gradient) {
+        ::litehtml::web_color middle_colour(const ::litehtml::background_layer::gradient_base &gradient) {
             if (gradient.color_points.empty()) return {0, 0, 0, 0};
             std::vector<sc::linear_gradient::stop> stops;
             for (const auto &point: gradient.color_points) stops.push_back({point.offset, colour_of(point.color)});
             const auto middle = sc::linear_gradient{{0, 0}, {1, 0}, stops}.colour_at(0.5);
-            return {static_cast<litehtml::byte>(middle.red() * 255), static_cast<litehtml::byte>(middle.green() * 255),
-                    static_cast<litehtml::byte>(middle.blue() * 255), static_cast<litehtml::byte>(middle.alpha() * 255)};
+            return {static_cast<::litehtml::byte>(middle.red() * 255), static_cast<::litehtml::byte>(middle.green() * 255),
+                    static_cast<::litehtml::byte>(middle.blue() * 255), static_cast<::litehtml::byte>(middle.alpha() * 255)};
         }
     }
 
-    void container::draw_radial_gradient(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
-                                         const litehtml::background_layer::radial_gradient &gradient) {
+    void container::draw_radial_gradient(const ::litehtml::uint_ptr hdc, const ::litehtml::background_layer &layer,
+                                         const ::litehtml::background_layer::radial_gradient &gradient) {
         draw_solid_fill(hdc, layer, middle_colour(gradient));
     }
 
-    void container::draw_conic_gradient(const litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
-                                        const litehtml::background_layer::conic_gradient &gradient) {
+    void container::draw_conic_gradient(const ::litehtml::uint_ptr hdc, const ::litehtml::background_layer &layer,
+                                        const ::litehtml::background_layer::conic_gradient &gradient) {
         draw_solid_fill(hdc, layer, middle_colour(gradient));
     }
 
 
     namespace {
-        bool shows(const litehtml::border &side) {
-            return value(side.width) > 0 && side.color.alpha > 0 && side.style != litehtml::border_style_none && side.style != litehtml::border_style_hidden;
+        bool shows(const ::litehtml::border &side) {
+            return value(side.width) > 0 && side.color.alpha > 0 && side.style != ::litehtml::border_style_none && side.style != ::litehtml::border_style_hidden;
         }
 
         // The band between fractions from and to of the border's width, as a ring.
@@ -579,18 +579,18 @@ namespace sc::web::detail {
         }
 
         // A side's colour for its style: inset darkens the top and left, outset the bottom and right.
-        sc::color side_colour(const litehtml::border &side, const int which) {
+        sc::color side_colour(const ::litehtml::border &side, const int which) {
             sc::color colour = colour_of(side.color);
             const bool top_left = which == 0 || which == 1;
-            const bool darker = (side.style == litehtml::border_style_inset && top_left) || (side.style == litehtml::border_style_outset && !top_left);
+            const bool darker = (side.style == ::litehtml::border_style_inset && top_left) || (side.style == ::litehtml::border_style_outset && !top_left);
             if (darker) colour = {colour.red() * 0.6, colour.green() * 0.6, colour.blue() * 0.6, colour.alpha()};
             return colour;
         }
 
         // Dots or dashes along one side, as squares or bars of its width, clipped to its band.
-        void dashes(sc::canvas &canvas, const rect &box, const std::array<double, 4> &widths, const int side, const litehtml::border &border) {
+        void dashes(sc::canvas &canvas, const rect &box, const std::array<double, 4> &widths, const int side, const ::litehtml::border &border) {
             const double w = border.width;
-            const bool dotted = border.style == litehtml::border_style_dotted;
+            const bool dotted = border.style == ::litehtml::border_style_dotted;
             const double on = dotted ? w : 3 * w, period = dotted ? 2 * w : 4 * w;
             const bool across = side == 1 || side == 3;
             const double length = across ? box.width() : box.height();
@@ -610,8 +610,8 @@ namespace sc::web::detail {
         }
     }
 
-    void container::draw_borders(const litehtml::uint_ptr hdc, const litehtml::borders &borders, const litehtml::position &draw_pos, bool) {
-        const std::array<const litehtml::border *, 4> sides{&borders.left, &borders.top, &borders.right, &borders.bottom};
+    void container::draw_borders(const ::litehtml::uint_ptr hdc, const ::litehtml::borders &borders, const ::litehtml::position &draw_pos, bool) {
+        const std::array<const ::litehtml::border *, 4> sides{&borders.left, &borders.top, &borders.right, &borders.bottom};
         if (std::ranges::none_of(sides, [](const auto *side) { return shows(*side); })) return;
         auto &canvas = canvas_of(hdc);
         const rect box = rect_of(draw_pos);
@@ -627,9 +627,9 @@ namespace sc::web::detail {
         const bool uniform = std::ranges::all_of(sides, [&](const auto *side) {
             return shows(*side) && side->color == first->color && side->style == first->style;
         });
-        const bool solid = first->style == litehtml::border_style_solid || first->style == litehtml::border_style_groove ||
-                           first->style == litehtml::border_style_ridge;
-        const bool doubled = first->style == litehtml::border_style_double;
+        const bool solid = first->style == ::litehtml::border_style_solid || first->style == ::litehtml::border_style_groove ||
+                           first->style == ::litehtml::border_style_ridge;
+        const bool doubled = first->style == ::litehtml::border_style_double;
         if (uniform && (solid || doubled)) {
             const auto fill = sc::appearance::filled(colour_of(first->color));
             if (doubled) {
@@ -648,13 +648,13 @@ namespace sc::web::detail {
             const auto &side = *sides[i];
             if (!shows(side)) continue;
             switch (side.style) {
-                case litehtml::border_style_dotted:
-                case litehtml::border_style_dashed: {
+                case ::litehtml::border_style_dotted:
+                case ::litehtml::border_style_dashed: {
                     clip_scope band{canvas, to_path(side_band(box, widths, i, 0, 1))};
                     dashes(canvas, box, widths, i, side);
                     break;
                 }
-                case litehtml::border_style_double:
+                case ::litehtml::border_style_double:
                     canvas.draw(side_band(box, widths, i, 0, 1.0 / 3), sc::appearance::filled(colour_of(side.color)));
                     canvas.draw(side_band(box, widths, i, 2.0 / 3, 1), sc::appearance::filled(colour_of(side.color)));
                     break;
@@ -666,7 +666,7 @@ namespace sc::web::detail {
     }
 
 
-    void container::set_clip(const litehtml::position &pos, const litehtml::border_radiuses &radius) {
+    void container::set_clip(const ::litehtml::position &pos, const ::litehtml::border_radiuses &radius) {
         if (!target) return;
         target->push_clip(box_path(rect_of(pos), radii_of(radius)));
         ++clips_;
@@ -685,13 +685,13 @@ namespace sc::web::detail {
         if (base_url && *base_url) base_url_ = html::resolve(base_url, settings_.base_url);
     }
 
-    void container::link(const std::shared_ptr<litehtml::document> &, const litehtml::element::ptr &) {
+    void container::link(const std::shared_ptr<::litehtml::document> &, const ::litehtml::element::ptr &) {
     }
 
-    void container::on_anchor_click(const char *, const litehtml::element::ptr &) {
+    void container::on_anchor_click(const char *, const ::litehtml::element::ptr &) {
     }
 
-    void container::on_mouse_event(const litehtml::element::ptr &, litehtml::mouse_event) {
+    void container::on_mouse_event(const ::litehtml::element::ptr &, ::litehtml::mouse_event) {
     }
 
     void container::set_cursor(const char *) {
@@ -703,16 +703,16 @@ namespace sc::web::detail {
         baseurl = where; // what the stylesheet's own URLs are relative to
     }
 
-    void container::get_viewport(litehtml::position &viewport) const {
+    void container::get_viewport(::litehtml::position &viewport) const {
         viewport = {0, 0, px(layout_width), px(viewport_height())};
     }
 
-    litehtml::element::ptr container::create_element(const char *, const litehtml::string_map &, const std::shared_ptr<litehtml::document> &) {
+    ::litehtml::element::ptr container::create_element(const char *, const ::litehtml::string_map &, const std::shared_ptr<::litehtml::document> &) {
         return nullptr; // litehtml's own elements
     }
 
-    void container::get_media_features(litehtml::media_features &media) const {
-        media.type = settings_.media == "screen" ? litehtml::media_type_screen : litehtml::media_type_print;
+    void container::get_media_features(::litehtml::media_features &media) const {
+        media.type = settings_.media == "screen" ? ::litehtml::media_type_screen : ::litehtml::media_type_print;
         media.width = px(layout_width);
         media.height = px(viewport_height());
         media.device_width = media.width;

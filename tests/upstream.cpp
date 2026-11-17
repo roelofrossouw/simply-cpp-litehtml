@@ -1,5 +1,5 @@
 // litehtml's own render tests (litehtml-tests, at the commit our litehtml pins), laid out by
-// sc::web::html and drawn without cairo, pango or GTK: each page is drawn into pixels by
+// sc::litehtml::html and drawn without cairo, pango or GTK: each page is drawn into pixels by
 // upstream/raster.h and compared with litehtml's reference picture of it. Text in fonts other than
 // Ahem is left out of the comparison where it lies (the references' text is pango's), and pages with
 // an image other than a PNG are left out.
@@ -109,12 +109,12 @@ namespace {
         if (!reference) return {outcome::no_reference, ""};
         const auto settings_of_page = config_of(page);
 
-        sc::web::html::options settings;
+        sc::litehtml::html::options settings;
         settings.base_url = page.string();
         settings.media = "screen";
         settings.font = sc::font{"serif", 16};
         settings.viewport_height = 600;
-        sc::web::html document{read(page), settings};
+        sc::litehtml::html document{read(page), settings};
         document.layout(800);
         // Rounded up: our text widths are fractional (pango's, in the references, are whole pixels),
         // so a width rounded down would wrap the widest line.
