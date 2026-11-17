@@ -3,7 +3,7 @@
 HTML and CSS laid out by [litehtml](https://github.com/litehtml/litehtml) and
 drawn on any `sc::canvas` from
 [sc-graphics](https://github.com/roelofrossouw/simply-cpp-graphics): an
-`sc::pdf`, an `sc::image`, an `sc::drawing` (and so SVG).
+`sc::pdflite::writer`, an `sc::image`, an `sc::drawing` (and so SVG).
 [sc-html2pdf](https://github.com/roelofrossouw/simply-cpp-html2pdf) builds on
 it to write HTML as pages of a PDF.
 
@@ -44,7 +44,7 @@ for (const auto &link: page.select("a[href]"))            // CSS selectors, list
 
 Lengths are CSS pixels, 96 to the inch (a point is 4/3 of one), from the
 document's top-left corner, y down. Fonts are found and measured through
-`sc::font` (fontconfig), as sc-pdf and sc-mupdf draw them; a CSS font list
+`sc::font` (fontconfig), as sc-pdflite and sc-mupdf draw them; a CSS font list
 takes its first installed family, else its generic one. Stylesheets
 (`<link>`, `@import`) and images come through `options.fetch`, by default from
 data: URIs, local files and http(s) (sc-core's `sc::rest`). Documents given the
@@ -60,7 +60,7 @@ never reaches `options.fetch`; a malformed one throws `std::invalid_argument` fr
 
 With `options.builtin_fonts`, text is in PDF's built-in fonts: CSS families map to Helvetica
 (Arial, `sans-serif`), Times (Times New Roman, `serif`) or Courier (Courier New, `monospace`), and
-are measured with Adobe's metrics; draw on an `sc::pdf` with `builtin_fonts(true)`, which writes
+are measured with Adobe's metrics; draw on an `sc::pdflite::writer` with `builtin_fonts(true)`, which writes
 them unembedded.
 
 What's drawn: text with its weight, style and decoration (underline, overline,

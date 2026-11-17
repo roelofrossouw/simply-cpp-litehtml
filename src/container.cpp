@@ -356,7 +356,7 @@ namespace sc::web::detail {
     }
 
     // A built-in font's width: Adobe's for what Windows-1252 has, the installed font's for the rest
-    // (embedded when drawn, as sc::pdf does).
+    // (embedded when drawn, as sc::pdflite::writer does).
     double container::standard_width(const font_entry &entry, const std::string_view text) {
         double width = 0;
         std::string other;

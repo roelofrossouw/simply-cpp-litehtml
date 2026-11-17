@@ -21,7 +21,7 @@ namespace sc::web {
     }
 
     /// Images read once for several documents: give each the same cache (a copy shares it) and
-    /// every URL is fetched and decoded once, and drawn as the very same bitmap, which an sc::pdf
+    /// every URL is fetched and decoded once, and drawn as the very same bitmap, which an sc::pdflite::writer
     /// then holds once. For a header or footer laid out again on every page.
     ///
     ///     sc::web::html::options options;
@@ -61,7 +61,7 @@ namespace sc::web {
         /// Text in PDF's built-in fonts, measured with Adobe's metrics for them (sc::standard_font):
         /// CSS families map to Helvetica (Arial, sans-serif and the like), Times (Times New Roman,
         /// serif) or Courier (Courier New, monospace); another family stays itself when it's
-        /// installed. Draw on an sc::pdf with builtin_fonts(true), which writes them unembedded.
+        /// installed. Draw on an sc::pdflite::writer with builtin_fonts(true), which writes them unembedded.
         bool builtin_fonts = false;
         /// Fetches stylesheets and images; empty for the default (html::default_fetch()).
         html_fetcher fetch;
@@ -69,10 +69,10 @@ namespace sc::web {
         std::optional<image_cache> images;
     };
 
-    /// An HTML document with its CSS, laid out to a width and drawn on any sc::canvas: an sc::pdf,
+    /// An HTML document with its CSS, laid out to a width and drawn on any sc::canvas: an sc::pdflite::writer,
     /// an sc::image, an sc::drawing (and so SVG). Lengths are CSS pixels (96 to the inch; a point
     /// is 4/3 of one), from the document's top-left corner, y down. Fonts are found and measured
-    /// through sc::font (fontconfig), as sc-pdf and sc-mupdf draw them.
+    /// through sc::font (fontconfig), as sc-pdflite and sc-mupdf draw them.
     ///
     ///     sc::web::html page{"<h1>Invoice</h1><p>Due in <b>30</b> days.</p>"};
     ///     page.layout(800);                                  // 800 px wide; height() is now known
