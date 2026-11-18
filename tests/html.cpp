@@ -5,7 +5,7 @@
 #include "sc_test.h"
 
 #include <sc/core/base64.h>
-#include <sc/qrencode/sc_qrencode.h>
+#include <sc/qrencode/qrencode.h>
 
 #include <algorithm>
 #include <filesystem>

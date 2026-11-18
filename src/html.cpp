@@ -5,7 +5,7 @@
 #include <litehtml/render_item.h>
 
 #include <sc/core/base64.h>
-#include <sc/http/rest.h>
+#include <sc/http/client.h>
 
 #include <algorithm>
 #include <cctype>
@@ -257,7 +257,7 @@ namespace sc::litehtml {
             }
         }
         if (resolved.starts_with("http://") || resolved.starts_with("https://")) {
-            sc::rest request{resolved};
+            sc::http::client request{resolved};
             auto body = request.get();
             if (request.status() < 200 || request.status() >= 300) return std::nullopt;
             return body;

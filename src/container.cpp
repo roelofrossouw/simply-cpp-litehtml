@@ -4,7 +4,7 @@
 #include <sc/core/core.h>
 #include <sc/graphics/paint.h>
 #include <sc/core/path.h>
-#include <sc/qrencode/sc_qrencode.h>
+#include <sc/qrencode/qrencode.h>
 
 #include <algorithm>
 #include <array>

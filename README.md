@@ -48,7 +48,7 @@ document's top-left corner, y down. Fonts are found and measured through
 `sc::font` (fontconfig), as sc-pdflite and sc-mupdf draw them; a CSS font list
 takes its first installed family, else its generic one. Stylesheets
 (`<link>`, `@import`) and images come through `options.fetch`, by default from
-data: URIs, local files and http(s) (sc-core's `sc::rest`). Documents given the
+data: URIs, local files and http(s) (sc-core's `sc::http::client`). Documents given the
 same `options.images` (an `sc::litehtml::image_cache`) read each image once and draw
 the same bitmap, which a PDF then holds once: for a header laid out on every page.
 
